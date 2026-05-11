@@ -29,16 +29,16 @@ jobs:
 
       - name: Run backend tests and coverage
         run: |
-          pytest --maxfail=1 --disable-warnings --cov=app --cov-report=xml:coverage.xml --cov-report=html:htmlcov --junitxml=junit.xml tests/unit tests/integration
+          pytest --maxfail=1 --disable-warnings --cov=app --cov-report=xml:reports/coverage.xml --cov-report=html:reports/htmlcov --junitxml=reports/junit.xml tests/unit tests/integration
 
       - name: Upload test reports
         uses: actions/upload-artifact@v4
         with:
           name: backend-test-reports
           path: |
-            backend/coverage.xml
-            backend/htmlcov
-            backend/junit.xml
+            reports/coverage.xml
+            reports/htmlcov
+            reports/junit.xml
 
   sonar-analysis:
     name: SonarQube / SonarCloud analysis
@@ -50,6 +50,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Download test reports
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-test-reports
+          path: reports
 
       - name: Setup Java for Sonar
         uses: actions/setup-java@v4
@@ -67,6 +73,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Verify coverage files exist
+        run: |
+          echo "Checking if coverage files exist:"
+          ls -la reports/ || echo "reports directory not found"
+          ls -la reports/coverage.xml || echo "coverage.xml not found"
+          ls -la reports/junit.xml || echo "junit.xml not found"
+          echo "Coverage file content preview:"
+          head -10 reports/coverage.xml || echo "Cannot read coverage.xml"
+          echo "Current working directory:"
+          pwd
+          echo "Files in current directory:"
+          ls -la
+
       - name: Run SonarQube / SonarCloud analysis
         uses: SonarSource/sonarcloud-github-action@v2
         env:
@@ -78,11 +97,13 @@ jobs:
             -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
             -Dsonar.organization=for2proj
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-            -Dsonar.sources=backend/app
-            -Dsonar.tests=backend/tests
-            -Dsonar.python.coverage.reportPaths=coverage.xml
-            -Dsonar.junit.reportPaths=junit.xml
-            -Dsonar.python.xunit.reportPath=junit.xml
+            -Dsonar.sources=app
+            -Dsonar.tests=tests
+            -Dsonar.python.coverage.reportPaths=reports/coverage.xml
+            -Dsonar.junit.reportPaths=reports/junit.xml
+            -Dsonar.python.xunit.reportPath=reports/junit.xml
+            -Dsonar.exclusions=**/migrations/**,**/__pycache__/**,**/tests/**
+            -Dsonar.coverage.exclusions=**/tests/**,**/migrations/**
             -Dsonar.buildString=build-${{ github.run_number }}
             -Dsonar.automatic.analysis.disabled=true
+            -Dsonar.verbose=true
