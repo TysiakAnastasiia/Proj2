@@ -2,8 +2,8 @@
 API Routes — thin controllers that delegate to service layer.
 """
 
-from typing import Optional
-from fastapi import APIRouter, Depends, Query, Annotated
+from typing import Optional, Annotated
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -82,8 +82,8 @@ async def update_me(
 
 @users_router.get("/search", response_model=list[UserPublic])
 async def search_users(
-    q: str = Query(..., min_length=1, description="Search query"),
-    db: Annotated[AsyncSession, Depends(get_db)]
+    db: Annotated[AsyncSession, Depends(get_db)],
+    q: str = Query(..., min_length=1, description="Search query")
 ):
     from sqlalchemy import or_, select
 
