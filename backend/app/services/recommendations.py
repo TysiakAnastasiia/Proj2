@@ -50,7 +50,7 @@ class RecommendationService:
             return self._parse_ai_response(ai_response)
         except Exception as e:
             print(f"AI recommendation error: {e}")
-            return self._get_fallback_recommendations(favorite_genres, read_books, count)
+            return self._get_fallback_recommendations(favorite_genres, count)
 
     def _build_prompt_data(self, favorite_genres: list[str], read_books: list[str], count: int) -> dict:
         """Build data for the recommendation prompt."""
@@ -87,7 +87,7 @@ class RecommendationService:
 
 Обирай книги з різних країн та епох, які точно зацікавлять та розширять світогляд."""
 
-    async def _get_ai_recommendations(self, prompt: str) -> str:
+    def _get_ai_recommendations(self, prompt: str) -> str:
         """Get recommendations from AI service."""
         body = json.dumps({
             "contents": [{"parts": [{"text": prompt}]}],
@@ -306,13 +306,35 @@ class RecommendationService:
                         favorite_genres: list[str], genre_books: dict, count: int):
         """Add books from user's favorite genres to recommendations."""
         for genre in favorite_genres:
-            genre_lower = genre.lower()
-            for key, books in genre_books.items():
-                if key in genre_lower or genre_lower in key:
-                    for book in books:
-                        if book["title"] not in used_titles and len(recommendations) < count:
-                            recommendations.append(book)
-                            used_titles.add(book["title"])
+            matching_books = self._find_matching_books_for_genre(genre, genre_books)
+            self._add_books_to_recommendations(matching_books, recommendations, used_titles, count)
+
+    def _find_matching_books_for_genre(self, genre: str, genre_books: dict) -> list[dict]:
+        """Find books that match the given genre."""
+        genre_lower = genre.lower()
+        matching_books = []
+        
+        for key, books in genre_books.items():
+            if self._genre_matches(key, genre_lower):
+                matching_books.extend(books)
+        
+        return matching_books
+
+    def _genre_matches(self, genre_key: str, user_genre: str) -> bool:
+        """Check if genre key matches user's genre."""
+        return genre_key in user_genre or user_genre in genre_key
+
+    def _add_books_to_recommendations(self, books: list[dict], recommendations: list[dict], 
+                                   used_titles: set, count: int):
+        """Add books to recommendations if they haven't been used and limit not reached."""
+        for book in books:
+            if self._should_add_book(book, used_titles, recommendations, count):
+                recommendations.append(book)
+                used_titles.add(book["title"])
+
+    def _should_add_book(self, book: dict, used_titles: set, recommendations: list[dict], count: int) -> bool:
+        """Check if book should be added to recommendations."""
+        return book["title"] not in used_titles and len(recommendations) < count
 
     def _fill_with_defaults(self, recommendations: list[dict], used_titles: set, 
                           default_books: list[dict], count: int):
@@ -323,7 +345,7 @@ class RecommendationService:
                 used_titles.add(book["title"])
 
     def _get_fallback_recommendations(
-        self, favorite_genres: list[str], read_books: list[str], count: int = 3
+        self, favorite_genres: list[str], count: int = 3
     ) -> list[dict]:
         """Dynamic fallback recommendations based on user preferences"""
         genre_books = self._get_genre_books()

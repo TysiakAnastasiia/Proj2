@@ -1,4 +1,5 @@
 import enum
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -177,15 +178,24 @@ class Book(Base):
     owner_id: Mapped[int] = mapped_column(ForeignKey(USERS_ID_FK), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
+    # Constants for ISBN validation
+    ISBN_10_PATTERN = r'^\d{9}[\dX]$'  # 10 digits, last can be X
+    ISBN_13_PATTERN = r'^\d{13}$'       # 13 digits
+
+    def _validate_isbn_format(self, isbn: str) -> bool:
+        """Validate ISBN format using simplified patterns."""
+        # Remove hyphens and spaces
+        clean_isbn = isbn.replace('-', '').replace(' ', '')
+        
+        # Check if it matches ISBN-10 or ISBN-13 pattern
+        return (bool(re.match(self.ISBN_10_PATTERN, clean_isbn)) or 
+                bool(re.match(self.ISBN_13_PATTERN, clean_isbn)))
+
     def __init__(self, **kwargs):
         # Validate ISBN
         isbn = kwargs.get('isbn')
-        if isbn is not None:
-            # Basic ISBN validation - should be either 10 or 13 digits with optional hyphens
-            import re
-            isbn_pattern = r'^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$'
-            if not re.match(isbn_pattern, isbn.replace('-', '').replace(' ', '')):
-                raise ValueError("Invalid ISBN format")
+        if isbn is not None and not self._validate_isbn_format(isbn):
+            raise ValueError("Invalid ISBN format")
         
         # Validate year published
         year = kwargs.get('year_published')

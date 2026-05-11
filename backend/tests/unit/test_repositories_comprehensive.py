@@ -6,6 +6,9 @@ import pytest
 from unittest.mock import AsyncMock
 
 
+# Constants for test assertions
+EXPECTED_IMPORT = True
+
 class TestRepositoriesComprehensive:
     """Comprehensive tests for all repositories."""
 
@@ -196,7 +199,7 @@ class TestRepositoriesComprehensive:
             assert ExchangeRepository is not None
             assert BaseRepository is not None
         except ImportError:
-            assert True
+            assert EXPECTED_IMPORT
 
     def test_repository_with_none_db(self):
         """Test repository with None database."""

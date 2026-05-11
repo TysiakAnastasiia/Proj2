@@ -16,6 +16,9 @@ from app.core.observer import EventManager, event_manager
 # === Configuration Tests ===
 
 
+# Constants for test assertions
+EXPECTED_IMPORT = True
+
 class TestConfiguration:
     """Test configuration functionality."""
 
@@ -269,7 +272,7 @@ class TestDependencies:
             from app.core.factory import DatabaseServiceFactory
             assert DatabaseServiceFactory is not None
         except ImportError:
-            assert True
+            assert EXPECTED_IMPORT
 
     def test_core_observer_imports(self):
         """Test observer imports work."""
@@ -278,7 +281,7 @@ class TestDependencies:
             assert EventManager is not None
             assert event_manager is not None
         except ImportError:
-            assert True
+            assert EXPECTED_IMPORT
 
     def test_core_singleton_imports(self):
         """Test singleton imports work."""
@@ -287,4 +290,4 @@ class TestDependencies:
             assert SingletonMeta is not None
             assert ConfigurationService is not None
         except ImportError:
-            assert True
+            assert EXPECTED_IMPORT
