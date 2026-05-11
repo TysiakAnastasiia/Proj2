@@ -50,15 +50,17 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
-          # ВАЖЛИВО: Оскільки ми в папці 'backend' через defaults,
-          # всі шляхи нижче вказуємо відносно НЕЇ.
           args: >
             -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
             -Dsonar.organization=for2proj
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
-            -Dsonar.sources=app
-            -Dsonar.tests=tests
-            -Dsonar.python.coverage.reportPaths=reports/coverage.xml
-            -Dsonar.python.xunit.reportPath=reports/junit.xml
-            -Dsonar.exclusions=**/migrations/**,**/__pycache__/**
+            # Вказуємо правильні шляхи від кореня репозиторію:
+            -Dsonar.sources=backend/app
+            -Dsonar.tests=backend/tests
+
+            # Шляхи до звітів теж мають бути повними:
+            -Dsonar.python.coverage.reportPaths=backend/reports/coverage.xml
+            -Dsonar.python.xunit.reportPath=backend/reports/junit.xml
+
+            -Dsonar.exclusions=backend/**/migrations/**,backend/**/__pycache__/**
             -Dsonar.verbose=true
