@@ -3,7 +3,7 @@ API Routes — thin controllers that delegate to service layer.
 """
 
 from typing import Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -52,12 +52,12 @@ auth_router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @auth_router.post("/register", response_model=TokenResponse, status_code=201)
-async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
+async def register(data: UserRegister, db: Annotated[AsyncSession, Depends(get_db)]):
     return await AuthService(db).register(data)
 
 
 @auth_router.post("/login", response_model=TokenResponse)
-async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
+async def login(data: UserLogin, db: Annotated[AsyncSession, Depends(get_db)]):
     return await AuthService(db).login(data)
 
 
@@ -67,15 +67,15 @@ users_router = APIRouter(prefix="/users", tags=["Users"])
 
 
 @users_router.get("/me", response_model=UserBase)
-async def get_me(current_user: User = Depends(get_current_user)):
+async def get_me(current_user: Annotated[User, Depends(get_current_user)]):
     return current_user
 
 
 @users_router.patch("/me", response_model=UserBase)
 async def update_me(
     data: UserUpdate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await UserService(db).update_profile(current_user, data)
 
@@ -83,7 +83,7 @@ async def update_me(
 @users_router.get("/search", response_model=list[UserPublic])
 async def search_users(
     q: str = Query(..., min_length=1, description="Search query"),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     from sqlalchemy import or_, select
 
