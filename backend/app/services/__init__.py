@@ -401,7 +401,7 @@ class ExchangeService:
         requested_book_id: int,
         message: str = None,
     ) -> Exchange:
-        requester, _ = await self._validate_exchange_participants(requester_id, requested_user_id)
+        _, _ = await self._validate_exchange_participants(requester_id, requested_user_id)
         _ = await self._validate_requested_book(requested_book_id, requested_user_id)
         _ = await self._validate_offered_book(offered_book_id, requester_id)
         
