@@ -7,101 +7,51 @@ on:
     branches: ["main", "master"]
 
 jobs:
-  backend-tests:
-    name: Backend tests & coverage
+  ci-backend:
+    name: Backend Tests & Sonar Analysis
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: backend
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Важливо для SonarCloud
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Create reports directory
-        run: |
-          mkdir -p reports
-
-      - name: Run backend tests and coverage
-        run: |
-          pytest --maxfail=1 --disable-warnings --cov=app --cov-report=xml:reports/coverage.xml --cov-report=html:reports/htmlcov --junit-xml=reports/junit.xml tests/unit tests/integration
-
-      - name: Upload test reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-test-reports
-          path: |
-            reports/coverage.xml
-            reports/htmlcov
-            reports/junit.xml
-          if-no-files-found: error
-
-  ci-backend-analysis:
-    name: SonarQube / SonarCloud analysis
-    runs-on: ubuntu-latest
-    needs: backend-tests
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download test reports
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-test-reports
-          path: reports
-
-      - name: Verify reports directory exists
-        run: |
-          ls -la reports/ || echo "reports directory not found"
+          python-version: "3.12"
 
       - name: Setup Java for Sonar
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: "temurin"
           java-version: "17"
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.12
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pytest-cov # Про всяк випадок, якщо немає в requirements
 
-      - name: Verify coverage files exist
+      - name: Run tests and coverage
         run: |
-          echo "Checking if coverage files exist:"
-          ls -la reports/ || echo "reports directory not found"
-          ls -la reports/coverage.xml || echo "coverage.xml not found"
-          ls -la reports/junit.xml || echo "junit.xml not found"
-          echo "Coverage file content preview:"
-          head -10 reports/coverage.xml || echo "Cannot read coverage.xml"
-          echo "Current working directory:"
-          pwd
-          echo "Files in current directory:"
-          ls -la
+          # Створюємо папку для звітів явно
+          mkdir -p reports
+          pytest --cov=app --cov-report=xml:reports/coverage.xml --junitxml=reports/junit.xml tests/unit tests/integration
 
-      - name: Run SonarQube / SonarCloud analysis
+      - name: Run SonarCloud analysis
         uses: SonarSource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
         with:
+          # ВАЖЛИВО: Оскільки ми в папці 'backend' через defaults,
+          # всі шляхи нижче вказуємо відносно НЕЇ.
           args: >
             -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
             -Dsonar.organization=for2proj
@@ -109,10 +59,6 @@ jobs:
             -Dsonar.sources=app
             -Dsonar.tests=tests
             -Dsonar.python.coverage.reportPaths=reports/coverage.xml
-            -Dsonar.junit.reportPaths=reports/junit.xml
             -Dsonar.python.xunit.reportPath=reports/junit.xml
-            -Dsonar.exclusions=**/migrations/**,**/__pycache__/**,**/tests/**
-            -Dsonar.coverage.exclusions=**/tests/**,**/migrations/**
-            -Dsonar.buildString=build-${{ github.run_number }}
-            -Dsonar.automatic.analysis.disabled=true
+            -Dsonar.exclusions=**/migrations/**,**/__pycache__/**
             -Dsonar.verbose=true
