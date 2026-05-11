@@ -83,7 +83,7 @@ async def update_me(
 @users_router.get("/search", response_model=list[UserPublic])
 async def search_users(
     db: Annotated[AsyncSession, Depends(get_db)],
-    q: str = Query(..., min_length=1, description="Search query")
+    q: Annotated[str, Query(min_length=1, description="Search query")] = ...
 ):
     from sqlalchemy import or_, select
 
@@ -120,12 +120,12 @@ books_router = APIRouter(prefix="/books", tags=["Books"])
 @books_router.get("", response_model=BookListResponse)
 async def list_books(
     db: Annotated[AsyncSession, Depends(get_db)],
-    q: Optional[str] = Query(None, description="Search by title or author"),
+    q: Annotated[Optional[str], Query(description="Search by title or author")] = None,
+    owner_id: Annotated[Optional[int], Query(description="Filter by owner ID")] = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
     genre: Optional[BookGenre] = None,
     available_only: bool = False,
-    owner_id: Optional[int] = Query(None, description="Filter by owner ID"),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
 ):
     service = BookService(db)
     # Build filters dictionary from query parameters
@@ -262,8 +262,8 @@ async def my_exchanges(
 @exchanges_router.get("/between", response_model=list[ExchangeResponse])
 async def exchanges_between_users(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user1: int = Query(..., description="First user ID"),
-    user2: int = Query(..., description="Second user ID"),
+    user1: Annotated[int, Query(description="First user ID")] = ...,
+    user2: Annotated[int, Query(description="Second user ID")] = ...,
 ):
     from app.repositories import ExchangeRepository
 
@@ -400,7 +400,7 @@ recs_router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
 async def get_recommendations(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
-    genres: Optional[str] = Query(None, description="Comma-separated genres"),
+    genres: Annotated[Optional[str], Query(description="Comma-separated genres")] = None,
 ):
     genre_list = [g.strip() for g in genres.split(",")] if genres else []
 
