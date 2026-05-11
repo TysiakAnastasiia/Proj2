@@ -103,12 +103,12 @@ async def search_users(
 
 
 @users_router.get("/{user_id}", response_model=UserPublic)
-async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
+async def get_user(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
     return await UserService(db).get_user(user_id)
 
 
 @users_router.get("/{user_id}/reviews", response_model=list[ReviewResponse])
-async def get_user_reviews(user_id: int, db: AsyncSession = Depends(get_db)):
+async def get_user_reviews(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
     return await ReviewRepository(db).get_by_user(user_id)
 
 
@@ -119,13 +119,13 @@ books_router = APIRouter(prefix="/books", tags=["Books"])
 
 @books_router.get("", response_model=BookListResponse)
 async def list_books(
+    db: Annotated[AsyncSession, Depends(get_db)],
     q: Optional[str] = Query(None, description="Search by title or author"),
     genre: Optional[BookGenre] = None,
     available_only: bool = False,
     owner_id: Optional[int] = Query(None, description="Filter by owner ID"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
 ):
     service = BookService(db)
     # Build filters dictionary from query parameters
@@ -154,7 +154,7 @@ async def list_books(
 
 
 @books_router.get("/{book_id}", response_model=BookResponse)
-async def get_book(book_id: int, db: AsyncSession = Depends(get_db)):
+async def get_book(book_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
     service = BookService(db)
     book = await service.get_book(book_id)
     book.average_rating = await service.book_repo.get_average_rating(book_id)
@@ -165,8 +165,8 @@ async def get_book(book_id: int, db: AsyncSession = Depends(get_db)):
 @books_router.post("", response_model=BookResponse, status_code=201)
 async def create_book(
     data: BookCreate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await BookService(db).create_book(data, current_user.id)
 
@@ -175,8 +175,8 @@ async def create_book(
 async def update_book(
     book_id: int,
     data: BookUpdate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await BookService(db).update_book(book_id, data, current_user.id)
 
@@ -184,8 +184,8 @@ async def update_book(
 @books_router.delete("/{book_id}", status_code=204)
 async def delete_book(
     book_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     await BookService(db).delete_book(book_id, current_user.id)
 
@@ -193,9 +193,9 @@ async def delete_book(
 @books_router.get("/{book_id}/reviews", response_model=list[ReviewResponse])
 async def get_book_reviews(
     book_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
     skip: int = 0,
     limit: int = 20,
-    db: AsyncSession = Depends(get_db),
 ):
     return await ReviewService(db).get_book_reviews(book_id)
 
@@ -208,8 +208,8 @@ reviews_router = APIRouter(prefix="/reviews", tags=["Reviews"])
 @reviews_router.post("", response_model=ReviewResponse, status_code=201)
 async def create_review(
     data: ReviewCreate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await ReviewService(db).create_review(data, current_user.id)
 
@@ -218,8 +218,8 @@ async def create_review(
 async def update_review(
     review_id: int,
     data: ReviewUpdate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await ReviewService(db).update_review(review_id, data, current_user.id)
 
@@ -227,8 +227,8 @@ async def update_review(
 @reviews_router.delete("/{review_id}", status_code=204)
 async def delete_review(
     review_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     await ReviewService(db).delete_review(review_id, current_user.id)
 
@@ -240,9 +240,9 @@ exchanges_router = APIRouter(prefix="/exchanges", tags=["Exchanges"])
 
 @exchanges_router.get("", response_model=list[ExchangeResponse])
 async def list_exchanges(
+    db: Annotated[AsyncSession, Depends(get_db)],
     skip: int = 0,
     limit: int = 20,
-    db: AsyncSession = Depends(get_db),
 ):
     from app.repositories import ExchangeRepository
 
@@ -251,8 +251,8 @@ async def list_exchanges(
 
 @exchanges_router.get("/my", response_model=list[ExchangeResponse])
 async def my_exchanges(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     from app.repositories import ExchangeRepository
 
@@ -261,9 +261,9 @@ async def my_exchanges(
 
 @exchanges_router.get("/between", response_model=list[ExchangeResponse])
 async def exchanges_between_users(
+    db: Annotated[AsyncSession, Depends(get_db)],
     user1: int = Query(..., description="First user ID"),
     user2: int = Query(..., description="Second user ID"),
-    db: AsyncSession = Depends(get_db),
 ):
     from app.repositories import ExchangeRepository
 
@@ -273,8 +273,8 @@ async def exchanges_between_users(
 @exchanges_router.post("", response_model=ExchangeResponse, status_code=201)
 async def create_exchange(
     data: ExchangeCreate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await ExchangeService(db).create_exchange(data, current_user.id)
 
@@ -282,8 +282,8 @@ async def create_exchange(
 @exchanges_router.patch("/{exchange_id}/accept", response_model=ExchangeResponse)
 async def accept_exchange(
     exchange_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await ExchangeService(db).update_status(
         exchange_id, ExchangeStatus.accepted, current_user.id
@@ -293,8 +293,8 @@ async def accept_exchange(
 @exchanges_router.patch("/{exchange_id}/reject", response_model=ExchangeResponse)
 async def reject_exchange(
     exchange_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await ExchangeService(db).update_status(
         exchange_id, ExchangeStatus.rejected, current_user.id
@@ -304,8 +304,8 @@ async def reject_exchange(
 @exchanges_router.patch("/{exchange_id}/complete", response_model=ExchangeResponse)
 async def complete_exchange(
     exchange_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await ExchangeService(db).update_status(
         exchange_id, ExchangeStatus.completed, current_user.id
@@ -319,8 +319,8 @@ wishlist_router = APIRouter(prefix="/wishlist", tags=["Wishlist"])
 
 @wishlist_router.get("", response_model=list[WishlistItemResponse])
 async def get_wishlist(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await WishlistService(db).get_wishlist(current_user.id)
 
@@ -330,8 +330,8 @@ async def get_wishlist(
 )
 async def add_to_wishlist(
     book_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await WishlistService(db).add_to_wishlist(current_user.id, book_id)
 
@@ -339,8 +339,8 @@ async def add_to_wishlist(
 @wishlist_router.delete("/{book_id}", status_code=204)
 async def remove_from_wishlist(
     book_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     await WishlistService(db).remove_from_wishlist(current_user.id, book_id)
 
@@ -353,8 +353,8 @@ chat_router = APIRouter(prefix="/chat", tags=["Chat"])
 @chat_router.get("/{exchange_id}", response_model=list[MessageResponse])
 async def get_messages(
     exchange_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await ChatService(db).get_messages(exchange_id, current_user.id)
 
@@ -367,16 +367,16 @@ friends_router = APIRouter(prefix="/friends", tags=["Friends"])
 @friends_router.post("/{user_id}", status_code=201)
 async def add_friend(
     user_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await FriendshipService(db).add_friend(current_user.id, user_id)
 
 
 @friends_router.get("", response_model=list[UserPublic])
 async def get_friends(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await FriendshipService(db).get_user_friends(current_user.id)
 
@@ -385,8 +385,8 @@ async def get_friends(
 async def send_message(
     exchange_id: int,
     data: MessageCreate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await ChatService(db).send_message(exchange_id, current_user.id, data)
 
@@ -398,9 +398,9 @@ recs_router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
 
 @recs_router.get("", response_model=list[RecommendationResponse])
 async def get_recommendations(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
     genres: Optional[str] = Query(None, description="Comma-separated genres"),
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
     genre_list = [g.strip() for g in genres.split(",")] if genres else []
 

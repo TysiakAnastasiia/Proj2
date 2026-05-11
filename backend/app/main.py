@@ -40,7 +40,7 @@ class ConnectionManager:
     async def broadcast(
         self, exchange_id: int, message: dict, exclude: Optional[WebSocket] = None
     ):
-        for ws in list(self.active.get(exchange_id, [])):
+        for ws in self.active.get(exchange_id, []):
             if ws != exclude:
                 try:
                     await ws.send_json(message)
@@ -55,7 +55,7 @@ manager = ConnectionManager()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app_instance: FastAPI):
     # Startup: create tables (use alembic in production)
     from app.db.session import engine, Base
     import app.models  # noqa: F401 — register models

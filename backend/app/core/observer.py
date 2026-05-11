@@ -198,7 +198,6 @@ class WebSocketObserver(Observer):
             try:
                 # This would be implemented based on your WebSocket library
                 await client.send_json(message)
-                pass
             except Exception as e:
                 print(f"Error sending to WebSocket client: {e}")
                 # Remove disconnected client
