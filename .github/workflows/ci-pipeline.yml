@@ -84,6 +84,5 @@ jobs:
             -Dsonar.python.coverage.reportPaths=coverage.xml
             -Dsonar.junit.reportPaths=junit.xml
             -Dsonar.python.xunit.reportPath=junit.xml
+            -Dsonar.buildString=build-${{ github.run_number }}
             -Dsonar.automatic.analysis.disabled=true
-            -Dsonar.scm.disabled=true
-            -Dsonar.pullrequest.disabled=true
