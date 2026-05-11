@@ -69,6 +69,10 @@ jobs:
 
       - name: Run SonarQube / SonarCloud analysis
         uses: SonarSource/sonarcloud-github-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
         with:
           args: >
             -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
@@ -80,9 +84,6 @@ jobs:
             -Dsonar.python.coverage.reportPaths=coverage.xml
             -Dsonar.junit.reportPaths=junit.xml
             -Dsonar.python.xunit.reportPath=junit.xml
-            -Dsonar.automaticanalysis.disabled=true
+            -Dsonar.automatic.analysis.disabled=true
             -Dsonar.scm.disabled=true
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.pullrequest.disabled=true
