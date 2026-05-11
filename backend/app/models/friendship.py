@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from .base import Base
 
 class Friendship(Base):
@@ -10,8 +10,8 @@ class Friendship(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     friend_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     status = Column(String, default="pending")  # pending, accepted, blocked, rejected
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id], back_populates="friendships_sent")

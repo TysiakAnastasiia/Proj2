@@ -60,22 +60,23 @@ class TestUserRepository:
             "is_active": True
         }
         
-        # Mock database operations
-        mock_user = User(id=1, **user_data)
-        self.mock_session.add.return_value = None
-        self.mock_session.commit.return_value = None
-        self.mock_session.refresh.return_value = None
+        # Create user object directly
+        user_obj = User(id=1, **user_data)
         
-        # Mock User constructor
-        with patch('app.repositories.User', return_value=mock_user):
-            result = await self.user_repo.create(user_data)
+        # Mock database operations
+        self.mock_session.add = AsyncMock()
+        self.mock_session.flush = AsyncMock()
+        self.mock_session.refresh = AsyncMock()
+        
+        # Create user
+        result = await self.user_repo.create(user_obj)
         
         # Assert
         assert result.id == 1
         assert result.email == user_data["email"]
         assert result.username == user_data["username"]
         self.mock_session.add.assert_called_once()
-        self.mock_session.commit.assert_called_once()
+        self.mock_session.flush.assert_called_once()
         self.mock_session.refresh.assert_called_once()
     
     async def test_get_user_by_id_success(self):
@@ -312,22 +313,23 @@ class TestBookRepository:
             "is_available": True
         }
         
-        # Mock database operations
-        mock_book = Book(id=1, **book_data)
-        self.mock_session.add.return_value = None
-        self.mock_session.commit.return_value = None
-        self.mock_session.refresh.return_value = None
+        # Create book object directly
+        book_obj = Book(id=1, **book_data)
         
-        # Mock Book constructor
-        with patch('app.repositories.Book', return_value=mock_book):
-            result = await self.book_repo.create(book_data)
+        # Mock database operations
+        self.mock_session.add = AsyncMock()
+        self.mock_session.flush = AsyncMock()
+        self.mock_session.refresh = AsyncMock()
+        
+        # Create book
+        result = await self.book_repo.create(book_obj)
         
         # Assert
         assert result.id == 1
         assert result.title == book_data["title"]
         assert result.author == book_data["author"]
         self.mock_session.add.assert_called_once()
-        self.mock_session.commit.assert_called_once()
+        self.mock_session.flush.assert_called_once()
         self.mock_session.refresh.assert_called_once()
     
     async def test_get_book_by_id_success(self):
@@ -480,15 +482,16 @@ class TestReviewRepository:
             "is_spoiler": False
         }
         
-        # Mock database operations
-        mock_review = Review(id=1, **review_data)
-        self.mock_session.add.return_value = None
-        self.mock_session.commit.return_value = None
-        self.mock_session.refresh.return_value = None
+        # Create review object directly
+        review_obj = Review(id=1, **review_data)
         
-        # Mock Review constructor
-        with patch('app.repositories.Review', return_value=mock_review):
-            result = await self.review_repo.create(review_data)
+        # Mock database operations
+        self.mock_session.add = AsyncMock()
+        self.mock_session.flush = AsyncMock()
+        self.mock_session.refresh = AsyncMock()
+        
+        # Create review
+        result = await self.review_repo.create(review_obj)
         
         # Assert
         assert result.id == 1
@@ -496,7 +499,7 @@ class TestReviewRepository:
         assert result.book_id == review_data["book_id"]
         assert result.rating == review_data["rating"]
         self.mock_session.add.assert_called_once()
-        self.mock_session.commit.assert_called_once()
+        self.mock_session.flush.assert_called_once()
         self.mock_session.refresh.assert_called_once()
     
     async def test_get_review_by_id_success(self):
@@ -630,15 +633,16 @@ class TestExchangeRepository:
             "message": "I'd like to exchange books!"
         }
         
-        # Mock database operations
-        mock_exchange = Exchange(id=1, **exchange_data)
-        self.mock_session.add.return_value = None
-        self.mock_session.commit.return_value = None
-        self.mock_session.refresh.return_value = None
+        # Create exchange object directly
+        exchange_obj = Exchange(id=1, **exchange_data)
         
-        # Mock Exchange constructor
-        with patch('app.repositories.Exchange', return_value=mock_exchange):
-            result = await self.exchange_repo.create(exchange_data)
+        # Mock database operations
+        self.mock_session.add = AsyncMock()
+        self.mock_session.flush = AsyncMock()
+        self.mock_session.refresh = AsyncMock()
+        
+        # Create exchange
+        result = await self.exchange_repo.create(exchange_obj)
         
         # Assert
         assert result.id == 1
@@ -646,7 +650,7 @@ class TestExchangeRepository:
         assert result.requested_user_id == exchange_data["requested_user_id"]
         assert result.status == exchange_data["status"]
         self.mock_session.add.assert_called_once()
-        self.mock_session.commit.assert_called_once()
+        self.mock_session.flush.assert_called_once()
         self.mock_session.refresh.assert_called_once()
     
     async def test_get_exchange_by_id_success(self):
@@ -811,15 +815,16 @@ class TestWishlistRepository:
             "notes": "Really want this book!"
         }
         
-        # Mock database operations
-        mock_item = WishlistItem(id=1, **item_data)
-        self.mock_session.add.return_value = None
-        self.mock_session.commit.return_value = None
-        self.mock_session.refresh.return_value = None
+        # Create wishlist item object directly
+        item_obj = WishlistItem(id=1, **item_data)
         
-        # Mock WishlistItem constructor
-        with patch('app.repositories.WishlistItem', return_value=mock_item):
-            result = await self.wishlist_repo.create(item_data)
+        # Mock database operations
+        self.mock_session.add = AsyncMock()
+        self.mock_session.flush = AsyncMock()
+        self.mock_session.refresh = AsyncMock()
+        
+        # Create wishlist item
+        result = await self.wishlist_repo.create(item_obj)
         
         # Assert
         assert result.id == 1
@@ -827,7 +832,7 @@ class TestWishlistRepository:
         assert result.book_id == item_data["book_id"]
         assert result.priority == item_data["priority"]
         self.mock_session.add.assert_called_once()
-        self.mock_session.commit.assert_called_once()
+        self.mock_session.flush.assert_called_once()
         self.mock_session.refresh.assert_called_once()
     
     async def test_get_wishlist_item_by_id_success(self):
@@ -958,15 +963,16 @@ class TestMessageRepository:
             "is_read": False
         }
         
-        # Mock database operations
-        mock_message = Message(id=1, **message_data)
-        self.mock_session.add.return_value = None
-        self.mock_session.commit.return_value = None
-        self.mock_session.refresh.return_value = None
+        # Create message object directly
+        message_obj = Message(id=1, **message_data)
         
-        # Mock Message constructor
-        with patch('app.repositories.Message', return_value=mock_message):
-            result = await self.message_repo.create(message_data)
+        # Mock database operations
+        self.mock_session.add = AsyncMock()
+        self.mock_session.commit = AsyncMock()
+        self.mock_session.refresh = AsyncMock()
+        
+        # Create message
+        result = await self.message_repo.create(message_obj)
         
         # Assert
         assert result.id == 1
@@ -974,7 +980,7 @@ class TestMessageRepository:
         assert result.receiver_id == message_data["receiver_id"]
         assert result.content == message_data["content"]
         self.mock_session.add.assert_called_once()
-        self.mock_session.commit.assert_called_once()
+        self.mock_session.flush.assert_called_once()
         self.mock_session.refresh.assert_called_once()
     
     async def test_get_message_by_id_success(self):
@@ -1110,15 +1116,16 @@ class TestFriendshipRepository:
             "status": "pending"
         }
         
-        # Mock database operations
-        mock_friendship = Friendship(id=1, **friendship_data)
-        self.mock_session.add.return_value = None
-        self.mock_session.commit.return_value = None
-        self.mock_session.refresh.return_value = None
+        # Create friendship object directly
+        friendship_obj = Friendship(id=1, **friendship_data)
         
-        # Mock Friendship constructor
-        with patch('app.repositories.Friendship', return_value=mock_friendship):
-            result = await self.friendship_repo.create(friendship_data)
+        # Mock database operations
+        self.mock_session.add = AsyncMock()
+        self.mock_session.flush = AsyncMock()
+        self.mock_session.refresh = AsyncMock()
+        
+        # Create friendship
+        result = await self.friendship_repo.create(friendship_obj)
         
         # Assert
         assert result.id == 1
@@ -1126,7 +1133,7 @@ class TestFriendshipRepository:
         assert result.friend_id == friendship_data["friend_id"]
         assert result.status == friendship_data["status"]
         self.mock_session.add.assert_called_once()
-        self.mock_session.commit.assert_called_once()
+        self.mock_session.flush.assert_called_once()
         self.mock_session.refresh.assert_called_once()
     
     async def test_get_friendship_by_id_success(self):

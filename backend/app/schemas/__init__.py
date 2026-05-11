@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 
 from app.models import BookGenre, BookCondition, ExchangeStatus
 
@@ -33,14 +33,13 @@ class UserBase(BaseModel):
     id: int
     email: str
     username: str
-    full_name: Optional[str]
-    bio: Optional[str]
-    city: Optional[str]
-    avatar_url: Optional[str]
+    full_name: Optional[str] = None
+    bio: Optional[str] = None
+    city: Optional[str] = None
+    avatar_url: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserUpdate(BaseModel):
@@ -53,13 +52,12 @@ class UserUpdate(BaseModel):
 class UserPublic(BaseModel):
     id: int
     username: str
-    full_name: Optional[str]
-    avatar_url: Optional[str]
-    city: Optional[str]
+    full_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    city: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 #  Book
@@ -97,11 +95,11 @@ class BookResponse(BaseModel):
     id: int
     title: str
     author: str
-    description: Optional[str]
-    isbn: Optional[str]
-    cover_url: Optional[str]
+    description: Optional[str] = None
+    isbn: Optional[str] = None
+    cover_url: Optional[str] = None
     genre: BookGenre
-    published_year: Optional[int]
+    published_year: Optional[int] = None
     language: str
     condition: BookCondition
     is_available_for_exchange: bool
@@ -111,8 +109,7 @@ class BookResponse(BaseModel):
     review_count: int = 0
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BookListResponse(BaseModel):
@@ -140,14 +137,13 @@ class ReviewUpdate(BaseModel):
 class ReviewResponse(BaseModel):
     id: int
     rating: int
-    content: Optional[str]
+    content: Optional[str] = None
     user: UserPublic
     book_id: int
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 #  Exchange
@@ -162,16 +158,15 @@ class ExchangeCreate(BaseModel):
 class ExchangeResponse(BaseModel):
     id: int
     status: ExchangeStatus
-    message: Optional[str]
+    message: Optional[str] = None
     requester: UserPublic
     owner: UserPublic
     offered_book: Optional[BookResponse] = None
     requested_book: BookResponse
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 #  Wishlist
@@ -182,8 +177,7 @@ class WishlistItemResponse(BaseModel):
     book: BookResponse
     added_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 #  Chat
@@ -201,8 +195,7 @@ class MessageResponse(BaseModel):
     is_read: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 #  Recommendations

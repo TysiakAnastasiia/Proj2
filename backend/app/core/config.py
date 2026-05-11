@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     debug: bool = True
 
     # Database
-    database_url: str = "postgresql+asyncpg://bookswap:bookswap@db:5432/bookswap"
+    database_url: str = "postgresql+asyncpg://bookswap:change-this-password@db:5432/bookswap"
 
     # Security
     secret_key: str = "change-me-in-production-super-secret-key"

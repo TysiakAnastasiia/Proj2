@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Any
 from enum import Enum
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class EventType(Enum):
@@ -33,7 +33,7 @@ class Event:
     ):
         self.event_type = event_type
         self.data = data
-        self.timestamp = timestamp or datetime.utcnow()
+        self.timestamp = timestamp or datetime.now(timezone.utc)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert event to dictionary."""
@@ -164,7 +164,7 @@ class StatisticsObserver(Observer):
         return {
             "total_events": self._total_events,
             "event_counts": {k.value: v for k, v in self._event_counts.items()},
-            "last_updated": datetime.utcnow().isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat(),
         }
 
 

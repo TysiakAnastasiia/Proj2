@@ -73,7 +73,7 @@ class TestExchangeModel:
         assert hasattr(exchange, "requested_book_id")
         assert hasattr(exchange, "offered_book_id")
         assert hasattr(exchange, "requester_id")
-        assert hasattr(exchange, "owner_id")
+        assert hasattr(exchange, "requested_user_id")
         assert hasattr(exchange, "status")
 
 

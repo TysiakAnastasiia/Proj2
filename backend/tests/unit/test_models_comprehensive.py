@@ -1,6 +1,6 @@
 
 import pytest
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 from app.models import User, Book, Review, Exchange, WishlistItem, Message, Friendship
 
@@ -93,9 +93,9 @@ class TestUserModel:
     
     def test_user_created_at_auto_set(self):
         """Test that created_at is automatically set."""
-        before = datetime.utcnow()
+        before = datetime.now(timezone.utc)
         user = User(email="test@example.com", username="test", hashed_password="pass")
-        after = datetime.utcnow()
+        after = datetime.now(timezone.utc)
         
         assert before <= user.created_at <= after
 

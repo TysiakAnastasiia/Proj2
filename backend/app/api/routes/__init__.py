@@ -58,7 +58,7 @@ async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
 
 @auth_router.post("/login", response_model=TokenResponse)
 async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
-    return await AuthService(db).login(data.email, data.password)
+    return await AuthService(db).login(data)
 
 
 #  Users
@@ -129,7 +129,7 @@ async def list_books(
 ):
     service = BookService(db)
     books, total = await service.search_books(
-        q, genre, available_only, owner_id, page, page_size
+        q=q, genre=genre, available_only=available_only, owner_id=owner_id, page=page, page_size=page_size
     )
     pages = (total + page_size - 1) // page_size
     return {
@@ -185,7 +185,7 @@ async def get_book_reviews(
     limit: int = 20,
     db: AsyncSession = Depends(get_db),
 ):
-    return await ReviewService(db).get_book_reviews(book_id, skip, limit)
+    return await ReviewService(db).get_book_reviews(book_id)
 
 
 #  Reviews
