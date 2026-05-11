@@ -128,8 +128,20 @@ async def list_books(
     db: AsyncSession = Depends(get_db),
 ):
     service = BookService(db)
+    # Build filters dictionary from query parameters
+    filters = {}
+    if genre:
+        filters['genre'] = genre
+    if available_only:
+        filters['available_only'] = available_only
+    if owner_id:
+        filters['owner_id'] = owner_id
+    
+    # Calculate limit based on pagination
+    limit = page_size
+    
     books, total = await service.search_books(
-        q=q, genre=genre, available_only=available_only, owner_id=owner_id, page=page, page_size=page_size
+        query=q or "", filters=filters, limit=limit
     )
     pages = (total + page_size - 1) // page_size
     return {

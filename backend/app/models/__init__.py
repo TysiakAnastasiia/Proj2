@@ -17,6 +17,14 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.session import Base
 
 
+# Constants for relationship cascades
+CASCADE_DELETE_ORPHAN = "all, delete-orphan"
+
+# Constants for foreign key references
+USERS_ID_FK = "users.id"
+BOOKS_ID_FK = "books.id"
+
+
 #  User
 
 
@@ -39,46 +47,55 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     def __init__(self, **kwargs):
-        # Validate ID
-        user_id = kwargs.get('id')
-        if user_id is not None:
-            if not isinstance(user_id, int) or user_id <= 0:
-                raise ValueError("ID must be a positive integer")
-        
-        # Validate username before initializing
-        username = kwargs.get('username')
+        self._validate_id(kwargs.get('id'))
+        self._validate_username(kwargs.get('username'))
+        self._validate_required_fields(kwargs)
+        self._validate_field_types(kwargs)
+        self._set_defaults(kwargs)
+        self._set_created_at(kwargs)
+        super().__init__(**kwargs)
+
+    def _validate_id(self, user_id):
+        """Validate user ID."""
+        if user_id is not None and (not isinstance(user_id, int) or user_id <= 0):
+            raise ValueError("ID must be a positive integer")
+    
+    def _validate_username(self, username):
+        """Validate username."""
         if username is not None:
             if not username or len(username.strip()) == 0:
                 raise ValueError("Username cannot be empty")
             if len(username) > 50:
                 raise ValueError("Username cannot be longer than 50 characters")
-        
-        # Validate required fields
+    
+    def _validate_required_fields(self, kwargs):
+        """Validate required fields."""
         if not kwargs.get('email'):
             raise ValueError("Email is required")
         if not kwargs.get('username'):
             raise ValueError("Username is required")
         if not kwargs.get('hashed_password'):
             raise ValueError("Hashed password is required")
-        
-        # Validate field types
+    
+    def _validate_field_types(self, kwargs):
+        """Validate field types."""
         if kwargs.get('email') is not None and not isinstance(kwargs.get('email'), str):
             raise TypeError("Email must be a string")
         if kwargs.get('username') is not None and not isinstance(kwargs.get('username'), str):
             raise TypeError("Username must be a string")
         if kwargs.get('is_active') is not None and not isinstance(kwargs.get('is_active'), bool):
             raise TypeError("Is_active must be a boolean")
-        
-        # Set default values
+    
+    def _set_defaults(self, kwargs):
+        """Set default values."""
         if 'is_active' not in kwargs:
             kwargs['is_active'] = True
-        
-        # Set created_at for testing purposes
+    
+    def _set_created_at(self, kwargs):
+        """Set created_at for testing purposes."""
         if 'created_at' not in kwargs:
             from datetime import datetime, timezone
             kwargs['created_at'] = datetime.now(timezone.utc)
-        
-        super().__init__(**kwargs)
 
     def __str__(self):
         return f"{self.username}@{self.email}"
@@ -87,13 +104,13 @@ class User(Base):
         return f"<User id={self.id} email={self.email} username={self.username}>"
 
     books: Mapped[list["Book"]] = relationship(
-        "Book", back_populates="owner", cascade="all, delete-orphan"
+        "Book", back_populates="owner", cascade=CASCADE_DELETE_ORPHAN
     )
     reviews: Mapped[list["Review"]] = relationship(
-        "Review", back_populates="user", cascade="all, delete-orphan"
+        "Review", back_populates="user", cascade=CASCADE_DELETE_ORPHAN
     )
     wishlist_items: Mapped[list["WishlistItem"]] = relationship(
-        "WishlistItem", back_populates="user", cascade="all, delete-orphan"
+        "WishlistItem", back_populates="user", cascade=CASCADE_DELETE_ORPHAN
     )
     sent_exchanges: Mapped[list["Exchange"]] = relationship(
         "Exchange", foreign_keys="Exchange.requester_id", back_populates="requester"
@@ -157,7 +174,7 @@ class Book(Base):
         Enum(BookCondition), default=BookCondition.good
     )
     is_available: Mapped[bool] = mapped_column(Boolean, default=True)
-    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    owner_id: Mapped[int] = mapped_column(ForeignKey(USERS_ID_FK), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     def __init__(self, **kwargs):
@@ -179,9 +196,8 @@ class Book(Base):
         
         # Validate pages
         pages = kwargs.get('pages')
-        if pages is not None:
-            if pages <= 0:
-                raise ValueError("Pages must be a positive integer")
+        if pages is not None and pages <= 0:
+            raise ValueError("Pages must be a positive integer")
         
         super().__init__(**kwargs)
 
@@ -193,7 +209,7 @@ class Book(Base):
 
     owner: Mapped["User"] = relationship("User", back_populates="books")
     reviews: Mapped[list["Review"]] = relationship(
-        "Review", back_populates="book", cascade="all, delete-orphan"
+        "Review", back_populates="book", cascade=CASCADE_DELETE_ORPHAN
     )
     wishlist_items: Mapped[list["WishlistItem"]] = relationship(
         "WishlistItem", back_populates="book"
@@ -221,8 +237,8 @@ class Review(Base):
     rating: Mapped[int] = mapped_column(Integer, nullable=False)  # 1-5
     content: Mapped[Optional[str]] = mapped_column(Text)
     is_spoiler: Mapped[bool] = mapped_column(Boolean, default=False)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    book_id: Mapped[int] = mapped_column(ForeignKey("books.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey(USERS_ID_FK), nullable=False)
+    book_id: Mapped[int] = mapped_column(ForeignKey(BOOKS_ID_FK), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime, onupdate=func.now()
@@ -239,15 +255,13 @@ class Review(Base):
         
         # Validate title length
         title = kwargs.get('title')
-        if title is not None:
-            if len(title) > 100:
-                raise ValueError("Title cannot be longer than 100 characters")
+        if title is not None and len(title) > 100:
+            raise ValueError("Title cannot be longer than 100 characters")
         
         # Validate content length
         content = kwargs.get('content')
-        if content is not None:
-            if len(content) > 2000:
-                raise ValueError("Content cannot be longer than 2000 characters")
+        if content is not None and len(content) > 2000:
+            raise ValueError("Content cannot be longer than 2000 characters")
         
         super().__init__(**kwargs)
 
@@ -277,11 +291,11 @@ class Exchange(Base):
     __tablename__ = "exchanges"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    requester_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    requested_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    offered_book_id: Mapped[int] = mapped_column(ForeignKey("books.id"), nullable=False)
+    requester_id: Mapped[int] = mapped_column(ForeignKey(USERS_ID_FK), nullable=False)
+    requested_user_id: Mapped[int] = mapped_column(ForeignKey(USERS_ID_FK), nullable=False)
+    offered_book_id: Mapped[int] = mapped_column(ForeignKey(BOOKS_ID_FK), nullable=False)
     requested_book_id: Mapped[int] = mapped_column(
-        ForeignKey("books.id"), nullable=False
+        ForeignKey(BOOKS_ID_FK), nullable=False
     )
     status: Mapped[ExchangeStatus] = mapped_column(
         Enum(ExchangeStatus), default=ExchangeStatus.pending
@@ -316,9 +330,8 @@ class Exchange(Base):
         
         # Validate message length
         message = kwargs.get('message')
-        if message is not None:
-            if len(message) > 500:
-                raise ValueError("Message cannot be longer than 500 characters")
+        if message is not None and len(message) > 500:
+            raise ValueError("Message cannot be longer than 500 characters")
         
         super().__init__(**kwargs)
 
@@ -352,8 +365,8 @@ class WishlistItem(Base):
     __tablename__ = "wishlist_items"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    book_id: Mapped[int] = mapped_column(ForeignKey("books.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey(USERS_ID_FK), nullable=False)
+    book_id: Mapped[int] = mapped_column(ForeignKey(BOOKS_ID_FK), nullable=False)
     priority: Mapped[str] = mapped_column(String(20), default="medium")
     notes: Mapped[Optional[str]] = mapped_column(Text)
     added_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -368,9 +381,8 @@ class WishlistItem(Base):
         
         # Validate notes length
         notes = kwargs.get('notes')
-        if notes is not None:
-            if len(notes) > 300:
-                raise ValueError("Notes cannot be longer than 300 characters")
+        if notes is not None and len(notes) > 300:
+            raise ValueError("Notes cannot be longer than 300 characters")
         
         super().__init__(**kwargs)
 
@@ -392,8 +404,8 @@ class Message(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     exchange_id: Mapped[int] = mapped_column(ForeignKey("exchanges.id"), nullable=False)
-    receiver_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    receiver_id: Mapped[int] = mapped_column(ForeignKey(USERS_ID_FK), nullable=False)
+    sender_id: Mapped[int] = mapped_column(ForeignKey(USERS_ID_FK), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -439,8 +451,8 @@ class Friendship(Base):
     __tablename__ = "friendships"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    friend_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey(USERS_ID_FK), nullable=False)
+    friend_id: Mapped[int] = mapped_column(ForeignKey(USERS_ID_FK), nullable=False)
     status: Mapped[str] = mapped_column(
         String(20), default="pending"
     )  # pending, accepted, rejected

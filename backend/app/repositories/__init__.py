@@ -33,9 +33,9 @@ class UserRepository(BaseRepository[User]):
         result = await self.db.execute(select(User).where(User.username == username))
         return result.scalar_one_or_none()
 
-    async def get_all(self, limit: int = 100) -> list[User]:
+    async def get_all(self, skip: int = 0, limit: int = 100) -> list[User]:
         """Get all users."""
-        query = select(User).limit(limit)
+        query = select(User).offset(skip).limit(limit)
         result = await self.db.execute(query)
         return result.scalars().all()
 
@@ -75,12 +75,13 @@ class ReviewRepository(BaseRepository[Review]):
         )
         return result.scalars().all()
 
-    async def get_by_user(self, user_id: int) -> Sequence[Review]:
+    async def get_by_user(self, user_id: int, limit: int = 100) -> Sequence[Review]:
         result = await self.db.execute(
             select(Review)
             .options(selectinload(Review.user), selectinload(Review.book))
             .where(Review.user_id == user_id)
             .order_by(Review.created_at.desc())
+            .limit(limit)
         )
         return result.scalars().all()
 

@@ -39,6 +39,14 @@ from app.schemas import (
     ReviewUpdate,
 )
 
+# Constants for error messages
+USER_NOT_FOUND = "User not found"
+BOOK_NOT_FOUND = "Book not found"
+RATING_OUT_OF_RANGE = "Rating must be between 1 and 5"
+BOOK_NOT_AVAILABLE = "Book is not available for exchange"
+EXCHANGE_NOT_FOUND = "Exchange not found"
+FRIENDSHIP_NOT_FOUND = "Friendship not found"
+
 
 # ─── Auth Service ─────────────────────────────────────────────────────────────
 
@@ -90,7 +98,7 @@ class AuthService:
         """Get current user by ID."""
         user = await self.user_repository.get_by_id(user_id)
         if not user:
-            raise ValueError("User not found")
+            raise ValueError(USER_NOT_FOUND)
         return user
 
     def _make_tokens(self, user: User) -> dict:
@@ -113,7 +121,7 @@ class UserService:
     async def get_user(self, user_id: int) -> User:
         user = await self.user_repository.get_by_id(user_id)
         if not user:
-            raise ValueError("User not found")
+            raise ValueError(USER_NOT_FOUND)
         return user
 
     async def get_user_by_id(self, user_id: int) -> User:
@@ -124,14 +132,14 @@ class UserService:
         """Get user by email."""
         user = await self.user_repository.get_by_email(email)
         if not user:
-            raise ValueError("User not found")
+            raise ValueError(USER_NOT_FOUND)
         return user
 
     async def update_user_profile(self, user_id: int, data: dict) -> User:
         """Update user profile with dict data."""
         user = await self.user_repository.get_by_id(user_id)
         if not user:
-            raise ValueError("User not found")
+            raise ValueError(USER_NOT_FOUND)
 
         for field, value in data.items():
             if hasattr(user, field):
@@ -143,7 +151,7 @@ class UserService:
         """Deactivate user account."""
         user = await self.user_repository.get_by_id(user_id)
         if not user:
-            raise ValueError("User not found")
+            raise ValueError(USER_NOT_FOUND)
 
         user.is_active = False
         return await self.user_repository.update(user)
@@ -165,7 +173,7 @@ class BookService:
     async def get_book(self, book_id: int) -> Book:
         book = await self.book_repository.get_by_id(book_id)
         if not book:
-            raise ValueError("Book not found")
+            raise ValueError(BOOK_NOT_FOUND)
         return book
 
     async def get_book_by_id(self, book_id: int) -> Book:
@@ -175,7 +183,7 @@ class BookService:
     async def create_book(self, owner_id: int, data: dict) -> Book:
         user = await self.user_repository.get_by_id(owner_id)
         if not user:
-            raise ValueError("User not found")
+            raise ValueError(USER_NOT_FOUND)
 
         book = Book(**data, owner_id=owner_id)
         created_book = await self.book_repository.create(book)
@@ -222,49 +230,67 @@ class ReviewService:
         self.user_repository = user_repository
         self.event_manager = event_manager
 
-    async def create_review(self, *args, **kwargs) -> Review:
+    def _validate_rating(self, rating):
+        """Validate rating is between 1 and 5."""
+        if rating is not None and (rating < 1 or rating > 5):
+            raise ValueError(RATING_OUT_OF_RANGE)
+
+    def _parse_review_args(self, *args):
+        """Parse and validate review creation arguments."""
         if len(args) == 2:
-            data, user_id = args
+            return args[0], args[1]  # data, user_id
         elif len(args) == 3:
             user_id, book_id, review_data = args
             if isinstance(review_data, dict):
                 review_data = {"book_id": book_id, **review_data}
                 rating = review_data.get("rating")
-                if rating is not None and (rating < 1 or rating > 5):
-                    raise ValueError("Rating must be between 1 and 5")
-            data = ReviewCreate(**review_data)
+                self._validate_rating(rating)
+                return ReviewCreate(**review_data), user_id
+            else:
+                raise TypeError("Invalid review data format")
         else:
             raise TypeError("Invalid arguments for create_review")
 
+    def _validate_review_data(self, data):
+        """Validate review data including rating."""
         if isinstance(data, dict):
             rating = data.get("rating")
-            if rating is not None and (rating < 1 or rating > 5):
-                raise ValueError("Rating must be between 1 and 5")
+            self._validate_rating(rating)
             data = ReviewCreate(**data)
 
         if data.rating < 1 or data.rating > 5:
-            raise ValueError("Rating must be between 1 and 5")
+            raise ValueError(RATING_OUT_OF_RANGE)
+        
+        return data
 
-        existing = None
-        if hasattr(self.review_repository, "get_user_review_for_book"):
-            existing = await self.review_repository.get_user_review_for_book(
-                user_id, data.book_id
-            )
-            if isinstance(existing, AsyncMock):
-                existing = None
-        if not existing and hasattr(self.review_repository, "get_by_user_and_book"):
-            existing = await self.review_repository.get_by_user_and_book(
-                user_id, data.book_id
-            )
-            if isinstance(existing, AsyncMock):
-                existing = None
+    async def _check_existing_review(self, user_id: int, book_id: int):
+        """Check if user already reviewed this book."""
+        existing = await self._try_get_review_by_method("get_user_review_for_book", user_id, book_id)
+        
+        if not existing:
+            existing = await self._try_get_review_by_method("get_by_user_and_book", user_id, book_id)
 
         if existing:
             raise ValueError("User has already reviewed this book")
 
+    async def _try_get_review_by_method(self, method_name: str, user_id: int, book_id: int):
+        """Try to get review using specified method name."""
+        if not hasattr(self.review_repository, method_name):
+            return None
+            
+        method = getattr(self.review_repository, method_name)
+        existing = await method(user_id, book_id)
+        return None if isinstance(existing, AsyncMock) else existing
+
+    async def create_review(self, *args, **kwargs) -> Review:
+        data, user_id = self._parse_review_args(*args)
+        data = self._validate_review_data(data)
+        
+        await self._check_existing_review(user_id, data.book_id)
+
         book = await self.book_repository.get_by_id(data.book_id)
         if not book:
-            raise ValueError("Book not found")
+            raise ValueError(BOOK_NOT_FOUND)
 
         review = Review(**data.model_dump(), user_id=user_id)
         created_review = await self.review_repository.create(review)
@@ -275,8 +301,8 @@ class ReviewService:
                     EventType.REVIEW_CREATED,
                     {
                         "review_id": created_review.id,
-                        "user_id": created_review.user_id,
                         "book_id": created_review.book_id,
+                        "user_id": created_review.user_id,
                         "rating": created_review.rating,
                     },
                 )
@@ -320,6 +346,53 @@ class ExchangeService:
         self.user_repository = user_repository
         self.event_manager = event_manager
 
+    async def _validate_exchange_participants(self, requester_id: int, requested_user_id: int):
+        """Validate exchange participants and return user objects."""
+        if requester_id == requested_user_id:
+            raise ValueError("Cannot create exchange request with yourself")
+
+        requester = await self.user_repository.get_by_id(requester_id)
+        requested_user = await self.user_repository.get_by_id(requested_user_id)
+        if not requester or not requested_user:
+            raise ValueError(USER_NOT_FOUND)
+        
+        return requester, requested_user
+
+    async def _validate_requested_book(self, requested_book_id: int, requested_user_id: int):
+        """Validate requested book and return book object."""
+        requested_book = await self.book_repository.get_by_id(requested_book_id)
+        if not requested_book:
+            raise ValueError(BOOK_NOT_FOUND)
+        
+        if requested_book.owner_id != requested_user_id:
+            raise ValueError("Requested book owner mismatch")
+        
+        if not requested_book.is_available:
+            raise ValueError(BOOK_NOT_AVAILABLE)
+        
+        return requested_book
+
+    async def _validate_offered_book(self, offered_book_id: int, requester_id: int):
+        """Validate offered book and return book object."""
+        if not offered_book_id:
+            return None
+            
+        offered_book = await self.book_repository.get_by_id(offered_book_id)
+        if not offered_book or offered_book.owner_id != requester_id:
+            raise ValueError("Offered book must be yours")
+        if not offered_book.is_available:
+            raise ValueError(BOOK_NOT_AVAILABLE)
+        
+        return offered_book
+
+    async def _check_existing_exchange(self, requester_id: int, requested_book_id: int, offered_book_id: int):
+        """Check if an active exchange already exists."""
+        existing = await self.exchange_repository.get_active_exchange(
+            requester_id, requested_book_id, offered_book_id
+        )
+        if existing:
+            raise ValueError("An active exchange request already exists")
+
     async def create_exchange_request(
         self,
         requester_id: int,
@@ -328,44 +401,11 @@ class ExchangeService:
         requested_book_id: int,
         message: str = None,
     ) -> Exchange:
-        if requester_id == requested_user_id:
-            raise ValueError("Cannot create exchange request with yourself")
-
-        requester = await self.user_repository.get_by_id(requester_id)
-        requested_user = await self.user_repository.get_by_id(requested_user_id)
-        if not requester or not requested_user:
-            raise ValueError("User not found")
-
-        requested_book = await self.book_repository.get_by_id(requested_book_id)
-        if not requested_book:
-            raise ValueError("Requested book not found")
-
-        offered_book = None
-        if offered_book_id:
-            offered_book = await self.book_repository.get_by_id(offered_book_id)
-            if not offered_book or offered_book.owner_id != requester_id:
-                raise ValueError("Offered book must be yours")
-            if not offered_book.is_available:
-                raise ValueError("Book is not available for exchange")
-
-        if requested_book.owner_id != requested_user_id:
-            if (
-                offered_book_id
-                and requested_book.id == offered_book_id
-                and requested_book.owner_id == requester_id
-            ):
-                if not requested_book.is_available:
-                    raise ValueError("Book is not available for exchange")
-            raise ValueError("Requested book owner mismatch")
-
-        if not requested_book.is_available:
-            raise ValueError("Book is not available for exchange")
-
-        existing = await self.exchange_repository.get_active_exchange(
-            requester_id, requested_book_id, offered_book_id
-        )
-        if existing:
-            raise ValueError("An active exchange request already exists")
+        requester, requested_user = await self._validate_exchange_participants(requester_id, requested_user_id)
+        requested_book = await self._validate_requested_book(requested_book_id, requested_user_id)
+        offered_book = await self._validate_offered_book(offered_book_id, requester_id)
+        
+        await self._check_existing_exchange(requester_id, requested_book_id, offered_book_id)
 
         exchange = Exchange(
             requester_id=requester_id,
@@ -397,7 +437,7 @@ class ExchangeService:
     async def accept_exchange(self, exchange_id: int, user_id: int) -> Exchange:
         exchange = await self.exchange_repository.get_by_id(exchange_id)
         if not exchange:
-            raise ValueError("Exchange not found")
+            raise ValueError(EXCHANGE_NOT_FOUND)
         if exchange.requested_user_id != user_id:
             raise ValueError("Not authorized to accept this exchange")
 
@@ -423,7 +463,7 @@ class ExchangeService:
     async def reject_exchange(self, exchange_id: int, user_id: int) -> Exchange:
         exchange = await self.exchange_repository.get_by_id(exchange_id)
         if not exchange:
-            raise ValueError("Exchange not found")
+            raise ValueError(EXCHANGE_NOT_FOUND)
         if exchange.requested_user_id != user_id:
             raise ValueError("Not authorized to reject this exchange")
 
@@ -432,19 +472,36 @@ class ExchangeService:
         )
 
     async def complete_exchange(self, exchange_id: int, user_id: int) -> Exchange:
+        exchange = await self._validate_exchange_for_completion(exchange_id, user_id)
+        
+        offered_book = await self._get_book_if_exists(exchange.offered_book_id)
+        requested_book = await self.book_repository.get_by_id(exchange.requested_book_id)
+
+        await self._transfer_book_ownership(offered_book, requested_book, exchange)
+
+        return await self.exchange_repository.update(
+            exchange_id, {"status": "completed"}
+        )
+
+    async def _validate_exchange_for_completion(self, exchange_id: int, user_id: int) -> Exchange:
+        """Validate exchange can be completed by user."""
         exchange = await self.exchange_repository.get_by_id(exchange_id)
         if not exchange:
-            raise ValueError("Exchange not found")
+            raise ValueError(EXCHANGE_NOT_FOUND)
         if exchange.requester_id != user_id:
             raise ValueError("Not authorized to complete this exchange")
         if exchange.status != "accepted":
             raise ValueError("Exchange is not accepted")
+        return exchange
 
-        offered_book = None
-        if exchange.offered_book_id:
-            offered_book = await self.book_repository.get_by_id(exchange.offered_book_id)
-        requested_book = await self.book_repository.get_by_id(exchange.requested_book_id)
+    async def _get_book_if_exists(self, book_id: int):
+        """Get book if ID exists, return None otherwise."""
+        if not book_id:
+            return None
+        return await self.book_repository.get_by_id(book_id)
 
+    async def _transfer_book_ownership(self, offered_book, requested_book, exchange: Exchange):
+        """Transfer book ownership between users."""
         if offered_book:
             await self.book_repository.update(
                 offered_book.id,
@@ -455,10 +512,6 @@ class ExchangeService:
                 requested_book.id,
                 {"owner_id": exchange.requester_id, "is_available": False},
             )
-
-        return await self.exchange_repository.update(
-            exchange_id, {"status": "completed"}
-        )
 
     async def get_user_exchanges(self, user_id: int):
         return await self.exchange_repository.get_by_user_id(user_id)
@@ -488,11 +541,11 @@ class WishlistService:
 
         user = await self.user_repository.get_by_id(user_id)
         if not user:
-            raise ValueError("User not found")
+            raise ValueError(USER_NOT_FOUND)
 
         book = await self.book_repository.get_by_id(book_id)
         if not book:
-            raise ValueError("Book not found")
+            raise ValueError(BOOK_NOT_FOUND)
 
         item = WishlistItem(
             user_id=user_id,
@@ -602,7 +655,7 @@ class FriendshipService:
         requester = await self.user_repository.get_by_id(requester_id)
         addressee = await self.user_repository.get_by_id(addressee_id)
         if not requester or not addressee:
-            raise ValueError("User not found")
+            raise ValueError(USER_NOT_FOUND)
 
         existing = await self.friendship_repository.get_between_users(requester_id, addressee_id)
         if existing:
@@ -644,7 +697,7 @@ class FriendshipService:
     async def accept_friend_request(self, friendship_id: int, user_id: int) -> Friendship:
         friendship = await self.friendship_repository.get_by_id(friendship_id)
         if not friendship:
-            raise ValueError("Friendship not found")
+            raise ValueError(FRIENDSHIP_NOT_FOUND)
         if friendship.friend_id != user_id:
             raise ValueError("Not authorized to accept this friend request")
 
@@ -653,7 +706,7 @@ class FriendshipService:
     async def reject_friend_request(self, friendship_id: int, user_id: int) -> Friendship:
         friendship = await self.friendship_repository.get_by_id(friendship_id)
         if not friendship:
-            raise ValueError("Friendship not found")
+            raise ValueError(FRIENDSHIP_NOT_FOUND)
         if friendship.friend_id != user_id:
             raise ValueError("Not authorized to reject this friend request")
 
@@ -670,7 +723,7 @@ class FriendshipService:
     async def remove_friend(self, user_id: int, friend_id: int) -> bool:
         friendship = await self.friendship_repository.get_between_users(user_id, friend_id)
         if not friendship:
-            raise ValueError("Friendship not found")
+            raise ValueError(FRIENDSHIP_NOT_FOUND)
         return await self.friendship_repository.delete(friendship.id)
 
     async def block_user(self, user_id: int, friend_id: int) -> Friendship:
@@ -680,7 +733,7 @@ class FriendshipService:
         user = await self.user_repository.get_by_id(user_id)
         friend = await self.user_repository.get_by_id(friend_id)
         if not user or not friend:
-            raise ValueError("User not found")
+            raise ValueError(USER_NOT_FOUND)
 
         existing = await self.friendship_repository.get_between_users(user_id, friend_id)
         if existing:

@@ -4,22 +4,28 @@ import urllib.request
 from app.core.config import settings
 from app.models import BookGenre
 
+# Constants for duplicated genre names
+FANTASY = "Фентезі"
+DETECTIVE = "Детектив"
+HISTORY = "Історія"
+POETRY = "Поезія"
+ROMANCE = "Роман"
 
 GENRE_LABELS = {
     BookGenre.fiction: "Художня проза",
     BookGenre.non_fiction: "Нон-фікшн",
-    BookGenre.fantasy: "Фентезі",
+    BookGenre.fantasy: FANTASY,
     BookGenre.sci_fi: "Наукова фантастика",
-    BookGenre.mystery: "Детектив",
+    BookGenre.mystery: DETECTIVE,
     BookGenre.romance: "Романтика",
     BookGenre.thriller: "Трилер",
     BookGenre.horror: "Жахи",
     BookGenre.biography: "Біографія",
-    BookGenre.history: "Історія",
+    BookGenre.history: HISTORY,
     BookGenre.science: "Наука",
     BookGenre.self_help: "Саморозвиток",
     BookGenre.children: "Дитяча",
-    BookGenre.poetry: "Поезія",
+    BookGenre.poetry: POETRY,
     BookGenre.other: "Інше",
 }
 
@@ -36,13 +42,30 @@ class RecommendationService:
         read_books: list[str],
         count: int = 3,
     ) -> list[dict]:
-        genres_str = ", ".join(favorite_genres) if favorite_genres else "різні жанри"
-        books_str = "; ".join(read_books[:10]) if read_books else "не вказано"
+        prompt_data = self._build_prompt_data(favorite_genres, read_books, count)
+        prompt = self._build_prompt(prompt_data, count)
+        
+        try:
+            ai_response = await self._get_ai_recommendations(prompt)
+            return self._parse_ai_response(ai_response)
+        except Exception as e:
+            print(f"AI recommendation error: {e}")
+            return self._get_fallback_recommendations(favorite_genres, read_books, count)
 
-        prompt = f"""Ти — всесвітньо відомий книжковий експерт з величезною базою даних літератури. Порекомендуй {count} книг на основі вподобань користувача.
+    def _build_prompt_data(self, favorite_genres: list[str], read_books: list[str], count: int) -> dict:
+        """Build data for the recommendation prompt."""
+        return {
+            "genres_str": ", ".join(favorite_genres) if favorite_genres else "різні жанри",
+            "books_str": "; ".join(read_books[:10]) if read_books else "не вказано",
+            "count": count
+        }
 
-Улюблені жанри: {genres_str}
-Прочитані книги: {books_str}
+    def _build_prompt(self, data: dict, count: int) -> str:
+        """Build the AI prompt."""
+        return f"""Ти — всесвітньо відомий книжковий експерт з величезною базою даних літератури. Порекомендуй {count} книг на основі вподобань користувача.
+
+Улюблені жанри: {data['genres_str']}
+Прочитані книги: {data['books_str']}
 
 Рекомендації можуть включати:
 - Класичні твори світової літератури
@@ -64,12 +87,12 @@ class RecommendationService:
 
 Обирай книги з різних країн та епох, які точно зацікавлять та розширять світогляд."""
 
-        body = json.dumps(
-            {
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"maxOutputTokens": 1000, "temperature": 0.7},
-            }
-        ).encode()
+    async def _get_ai_recommendations(self, prompt: str) -> str:
+        """Get recommendations from AI service."""
+        body = json.dumps({
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"maxOutputTokens": 1000, "temperature": 0.7},
+        }).encode()
 
         url = GEMINI_URL.format(key=settings.gemini_api_key)
         req = urllib.request.Request(
@@ -79,155 +102,169 @@ class RecommendationService:
             method="POST",
         )
 
-        try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                data = json.loads(resp.read())
-            raw = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-        except Exception as e:
-            print(f"AI recommendation error: {e}")
-            # Dynamic fallback recommendations based on user preferences
-            return self._get_fallback_recommendations(
-                favorite_genres, read_books, count
-            )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read())
+        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
-        # Strip markdown fences if present
+    def _parse_ai_response(self, raw: str) -> list[dict]:
+        """Parse AI response and return recommendations."""
+        cleaned = self._clean_ai_response(raw)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            return []
+
+    def _clean_ai_response(self, raw: str) -> str:
+        """Clean AI response by removing markdown fences."""
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
                 raw = raw[4:]
-        raw = raw.strip()
+        return raw.strip()
 
-        try:
-            return json.loads(raw)
-        except json.JSONDecodeError:
-            return []
-
-    def _get_fallback_recommendations(
-        self, favorite_genres: list[str], read_books: list[str], count: int = 3
-    ) -> list[dict]:
-        """Dynamic fallback recommendations based on user preferences"""
-
-        # Genre-based book pools
-        genre_books = {
-            "детектив": [
-                {
-                    "title": "Дівчина з татуюванням дракона",
-                    "author": "Стьюг Ларссон",
-                    "genre": "Детектив",
-                    "reason": "Сучасний шведський детектив з інтригою та несподіваними поворотами",
-                    "description": "Перша книга трилогії про Мікаель Блумквіст та Лісбет Саландер",
-                },
-                {
-                    "title": "Убивство у Східному експресі",
-                    "author": "Агата Крісті",
-                    "genre": "Детектив",
-                    "reason": "Класичний детектив від королеви жанру з Еркюлем Пуаро",
-                    "description": "Ідеальний приклад детективного роману з логічним розв'язанням",
-                },
-                {
-                    "title": "Шерлок Холмс",
-                    "author": "Артур Конан Дойл",
-                    "genre": "Детектив",
-                    "reason": "Незабутні пригоди найвідомішого детектива світу",
-                    "description": "Класика, яка сформувала жанр детективної літератури",
-                },
-            ],
-            "поезія": [
-                {
-                    "title": "Кобзар",
-                    "author": "Тарас Шевченко",
-                    "genre": "Поезія",
-                    "reason": "Фундаментальна збірка української поезії, що визначила національну ідентичність",
-                    "description": "Найважливіша поетична збірка в історії української літератури",
-                },
-                {
-                    "title": "Лірика",
-                    "author": "Пабло Неруда",
-                    "genre": "Поезія",
-                    "reason": "Чуттєва лірика нобелівського лауреата про любов і природу",
-                    "description": "Вірші, які торкаються найглибших струн душі",
-                },
-                {
-                    "title": "Вірші",
-                    "author": "Ліна Костенко",
-                    "genre": "Поезія",
-                    "reason": "Сучасна українська поезія з філософським підтекстом",
-                    "description": "Поезія, що поєднує традиції та сучасність",
-                },
-            ],
-            "фантастика": [
-                {
-                    "title": "Дюна",
-                    "author": "Френк Герберт",
-                    "genre": "Наукова фантастика",
-                    "reason": "Епічна космічна опера про політику, екологію та людську природу",
-                    "description": "Впливовий науково-фантастичний роман, що надихнув багато творів",
-                },
-                {
-                    "title": "Хранителі",
-                    "author": "Сергій Лук'яненко",
-                    "genre": "Фентезі",
-                    "reason": "Сучасне українське фентезі про світ нічних людей",
-                    "description": "Унікальне поєднання міської фентезі та філософських роздумів",
-                },
-                {
-                    "title": "Метро 2033",
-                    "author": "Дмитро Глуховський",
-                    "genre": "Постапокаліпсис",
-                    "reason": "Постапокаліптичний світ московського метро від українського автора",
-                    "description": "Напружена атмосфера та глибокі роздуми про людяність",
-                },
-            ],
-            "романтика": [
-                {
-                    "title": "Гордість і упередження",
-                    "author": "Джейн Остін",
-                    "genre": "Роман",
-                    "reason": "Класична історія кохання з британським гумором та соціальною сатирою",
-                    "description": "Чарівна романтична комедія звичаїв XIX століття",
-                },
-                {
-                    "title": "Тіні забутих предків",
-                    "author": "Михайло Коцюбинський",
-                    "genre": "Роман",
-                    "reason": "Лірична історія кохання на тлі карпатських пейзажів",
-                    "description": "Перлинка української літератури з поетичним стилем",
-                },
-                {
-                    "title": "Любов у часи холери",
-                    "author": "Габрієль Гарсія Маркес",
-                    "genre": "Роман",
-                    "reason": "Чарівна історія кохання, що витримує випробування часом",
-                    "description": "Магічний реалізм в інтерпретації теми вічного кохання",
-                },
-            ],
-            "історія": [
-                {
-                    "title": "Спадщина козацтва",
-                    "author": "В'ячеслав Липинський",
-                    "genre": "Історія",
-                    "reason": "Фундаментальна праця про українську державність та ідентичність",
-                    "description": "Класичний аналіз української історії та політичної думки",
-                },
-                {
-                    "title": "Київська Русь",
-                    "author": "Михайло Грушевський",
-                    "genre": "Історія",
-                    "reason": "Авторитетна історія України від заснування до XIV століття",
-                    "description": "Найповніша праця з ранньої історії України",
-                },
-                {
-                    "title": "Sapiens",
-                    "author": "Юваль Ной Харарі",
-                    "genre": "Нон-фікшн",
-                    "reason": "Захоплююча історія людства від появи Homo Sapiens до сьогодення",
-                    "description": "Популярна книга, що пояснює історію людства простою мовою",
-                },
-            ],
+    def _get_genre_books(self) -> dict:
+        """Get genre-based book pools for fallback recommendations."""
+        return {
+            "детектив": self._get_detective_books(),
+            "поезія": self._get_poetry_books(),
+            "фантастика": self._get_fantasy_books(),
+            "романтика": self._get_romance_books(),
+            "історія": self._get_history_books(),
         }
 
-        # Default recommendations for any genre
-        default_books = [
+    def _get_detective_books(self) -> list[dict]:
+        """Get detective book recommendations."""
+        return [
+            {
+                "title": "Дівчина з татуюванням дракона",
+                "author": "Стьюг Ларссон",
+                "genre": DETECTIVE,
+                "reason": "Сучасний шведський детектив з інтригою та несподіваними поворотами",
+                "description": "Перша книга трилогії про Мікаель Блумквіст та Лісбет Саландер",
+            },
+            {
+                "title": "Убивство у Східному експресі",
+                "author": "Агата Крісті",
+                "genre": DETECTIVE,
+                "reason": "Класичний детектив від королеви жанру з Еркюлем Пуаро",
+                "description": "Ідеальний приклад детективного роману з логічним розв'язанням",
+            },
+            {
+                "title": "Шерлок Холмс",
+                "author": "Артур Конан Дойл",
+                "genre": DETECTIVE,
+                "reason": "Незабутні пригоди найвідомішого детектива світу",
+                "description": "Класика, яка сформувала жанр детективної літератури",
+            },
+        ]
+
+    def _get_poetry_books(self) -> list[dict]:
+        """Get poetry book recommendations."""
+        return [
+            {
+                "title": "Кобзар",
+                "author": "Тарас Шевченко",
+                "genre": POETRY,
+                "reason": "Фундаментальна збірка української поезії, що визначила національну ідентичність",
+                "description": "Найважливіша поетична збірка в історії української літератури",
+            },
+            {
+                "title": "Лірика",
+                "author": "Пабло Неруда",
+                "genre": POETRY,
+                "reason": "Чуттєва лірика нобелівського лауреата про любов і природу",
+                "description": "Вірші, які торкаються найглибших струн душі",
+            },
+            {
+                "title": "Вірші",
+                "author": "Ліна Костенко",
+                "genre": POETRY,
+                "reason": "Сучасна українська поезія з філософським підтекстом",
+                "description": "Поезія, що поєднує традиції та сучасність",
+            },
+        ]
+
+    def _get_fantasy_books(self) -> list[dict]:
+        """Get fantasy/sci-fi book recommendations."""
+        return [
+            {
+                "title": "Дюна",
+                "author": "Френк Герберт",
+                "genre": "Наукова фантастика",
+                "reason": "Епічна космічна опера про політику, екологію та людську природу",
+                "description": "Впливовий науково-фантастичний роман, що надихнув багато творів",
+            },
+            {
+                "title": "Хранителі",
+                "author": "Сергій Лук'яненко",
+                "genre": FANTASY,
+                "reason": "Сучасне українське фентезі про світ нічних людей",
+                "description": "Унікальне поєднання міської фентезі та філософських роздумів",
+            },
+            {
+                "title": "Метро 2033",
+                "author": "Дмитро Глуховський",
+                "genre": "Постапокаліпсис",
+                "reason": "Постапокаліптичний світ московського метро від українського автора",
+                "description": "Напружена атмосфера та глибокі роздуми про людяність",
+            },
+        ]
+
+    def _get_romance_books(self) -> list[dict]:
+        """Get romance book recommendations."""
+        return [
+            {
+                "title": "Гордість і упередження",
+                "author": "Джейн Остін",
+                "genre": ROMANCE,
+                "reason": "Класична історія кохання з британським гумором та соціальною сатирою",
+                "description": "Чарівна романтична комедія звичаїв XIX століття",
+            },
+            {
+                "title": "Тіні забутих предків",
+                "author": "Михайло Коцюбинський",
+                "genre": ROMANCE,
+                "reason": "Лірична історія кохання на тлі карпатських пейзажів",
+                "description": "Перлинка української літератури з поетичним стилем",
+            },
+            {
+                "title": "Любов у часи холери",
+                "author": "Габрієль Гарсія Маркес",
+                "genre": ROMANCE,
+                "reason": "Чарівна історія кохання, що витримує випробування часом",
+                "description": "Магічний реалізм в інтерпретації теми вічного кохання",
+            },
+        ]
+
+    def _get_history_books(self) -> list[dict]:
+        """Get history book recommendations."""
+        return [
+            {
+                "title": "Спадщина козацтва",
+                "author": "В'ячеслав Липинський",
+                "genre": HISTORY,
+                "reason": "Фундаментальна праця про українську державність та ідентичність",
+                "description": "Класичний аналіз української історії та політичної думки",
+            },
+            {
+                "title": "Київська Русь",
+                "author": "Михайло Грушевський",
+                "genre": HISTORY,
+                "reason": "Авторитетна історія України від заснування до XIV століття",
+                "description": "Найповніша праця з ранньої історії України",
+            },
+            {
+                "title": "Sapiens",
+                "author": "Юваль Ной Харарі",
+                "genre": "Нон-фікшн",
+                "reason": "Захоплююча історія людства від появи Homo Sapiens до сьогодення",
+                "description": "Популярна книга, що пояснює історію людства простою мовою",
+            },
+        ]
+
+    def _get_default_books(self) -> list[dict]:
+        """Get default book recommendations for any genre."""
+        return [
             {
                 "title": "Сто років самотності",
                 "author": "Габрієль Гарсія Маркес",
@@ -259,33 +296,43 @@ class RecommendationService:
             {
                 "title": "Аліса в Країні чудес",
                 "author": "Льюїс Керрол",
-                "genre": "Фентезі",
+                "genre": FANTASY,
                 "reason": "Чарівна пригода, яка надихає мріяти та мислити креативно",
                 "description": "Класична казка для дорослих та дітей з філософським підтекстом",
             },
         ]
 
-        # Select books based on user genres
-        recommendations = []
-        used_titles = set()
-
-        # Add books from user's favorite genres
+    def _add_genre_books(self, recommendations: list[dict], used_titles: set, 
+                        favorite_genres: list[str], genre_books: dict, count: int):
+        """Add books from user's favorite genres to recommendations."""
         for genre in favorite_genres:
             genre_lower = genre.lower()
             for key, books in genre_books.items():
                 if key in genre_lower or genre_lower in key:
                     for book in books:
-                        if (
-                            book["title"] not in used_titles
-                            and len(recommendations) < count
-                        ):
+                        if book["title"] not in used_titles and len(recommendations) < count:
                             recommendations.append(book)
                             used_titles.add(book["title"])
 
-        # Fill remaining slots with default books
+    def _fill_with_defaults(self, recommendations: list[dict], used_titles: set, 
+                          default_books: list[dict], count: int):
+        """Fill remaining recommendation slots with default books."""
         for book in default_books:
             if book["title"] not in used_titles and len(recommendations) < count:
                 recommendations.append(book)
                 used_titles.add(book["title"])
+
+    def _get_fallback_recommendations(
+        self, favorite_genres: list[str], read_books: list[str], count: int = 3
+    ) -> list[dict]:
+        """Dynamic fallback recommendations based on user preferences"""
+        genre_books = self._get_genre_books()
+        default_books = self._get_default_books()
+        
+        recommendations = []
+        used_titles = set()
+
+        self._add_genre_books(recommendations, used_titles, favorite_genres, genre_books, count)
+        self._fill_with_defaults(recommendations, used_titles, default_books, count)
 
         return recommendations[:count]

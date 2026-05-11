@@ -801,7 +801,17 @@ class TestExchangeService:
         
         # Mock offered book is not available
         offered_book = Book(id=offered_book_id, title="Offered Book", author="Author", owner_id=requester_id, is_available=False)
-        self.mock_book_repo.get_by_id.return_value = offered_book
+        requested_book = Book(id=requested_book_id, title="Requested Book", author="Author", owner_id=requested_user_id, is_available=True)
+        
+        # Mock book repository to return different books based on ID
+        def mock_get_by_id(book_id):
+            if book_id == offered_book_id:
+                return offered_book
+            elif book_id == requested_book_id:
+                return requested_book
+            return None
+        
+        self.mock_book_repo.get_by_id.side_effect = mock_get_by_id
         
         # Execute and assert
         with pytest.raises(ValueError, match="Book is not available for exchange"):
