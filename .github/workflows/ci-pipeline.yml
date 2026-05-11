@@ -75,7 +75,7 @@ jobs:
             -Dsonar.organization=for2proj
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-            -Dsonar.sources=app
+            -Dsonar.sources=backend/app
             -Dsonar.tests=backend/tests
             -Dsonar.python.coverage.reportPaths=coverage.xml
             -Dsonar.junit.reportPaths=junit.xml
