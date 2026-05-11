@@ -81,6 +81,7 @@ jobs:
             -Dsonar.junit.reportPaths=junit.xml
             -Dsonar.python.xunit.reportPath=junit.xml
             -Dsonar.automaticanalysis.disabled=true
+            -Dsonar.scm.disabled=true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
