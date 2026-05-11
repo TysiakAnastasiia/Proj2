@@ -193,6 +193,25 @@ class ExchangeRepository(BaseRepository[Exchange]):
         )
         return result.scalars().all()
 
+    async def get_active_exchange(self, user_id: int) -> Optional[Exchange]:
+        """Get active exchange for user."""
+        result = await self.db.execute(
+            select(Exchange)
+            .options(
+                selectinload(Exchange.requester),
+                selectinload(Exchange.owner),
+                selectinload(Exchange.offered_book).selectinload(Book.owner),
+                selectinload(Exchange.requested_book).selectinload(Book.owner),
+            )
+            .where(
+                ((Exchange.requester_id == user_id) | (Exchange.requested_user_id == user_id))
+                & (Exchange.status.in_([ExchangeStatus.pending, ExchangeStatus.accepted]))
+            )
+            .order_by(Exchange.created_at.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
 
 class WishlistRepository(BaseRepository[WishlistItem]):
     def __init__(self, db: AsyncSession):
@@ -319,6 +338,30 @@ class FriendshipRepository(BaseRepository[Friendship]):
             )
         )
         return result.scalar_one_or_none()
+
+    async def get_accepted_friendships(self, user_id: int) -> Sequence[Friendship]:
+        """Get accepted friendships for user."""
+        result = await self.db.execute(
+            select(Friendship)
+            .where(
+                ((Friendship.user_id == user_id) | (Friendship.friend_id == user_id))
+                & (Friendship.status == "accepted")
+            )
+            .order_by(Friendship.created_at.desc())
+        )
+        return result.scalars().all()
+
+    async def get_pending_requests(self, user_id: int) -> Sequence[Friendship]:
+        """Get pending friendship requests for user."""
+        result = await self.db.execute(
+            select(Friendship)
+            .where(
+                (Friendship.friend_id == user_id)
+                & (Friendship.status == "pending")
+            )
+            .order_by(Friendship.created_at.desc())
+        )
+        return result.scalars().all()
 
     async def create_friendship(
         self, user_id: int, friend_id: int

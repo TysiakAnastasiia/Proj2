@@ -35,8 +35,56 @@ class User(Base):
     bio: Mapped[Optional[str]] = mapped_column(Text)
     city: Mapped[Optional[str]] = mapped_column(String(100))
     avatar_url: Mapped[Optional[str]] = mapped_column(String(500))
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    def __init__(self, **kwargs):
+        # Validate ID
+        user_id = kwargs.get('id')
+        if user_id is not None:
+            if not isinstance(user_id, int) or user_id <= 0:
+                raise ValueError("ID must be a positive integer")
+        
+        # Validate username before initializing
+        username = kwargs.get('username')
+        if username is not None:
+            if not username or len(username.strip()) == 0:
+                raise ValueError("Username cannot be empty")
+            if len(username) > 50:
+                raise ValueError("Username cannot be longer than 50 characters")
+        
+        # Validate required fields
+        if not kwargs.get('email'):
+            raise ValueError("Email is required")
+        if not kwargs.get('username'):
+            raise ValueError("Username is required")
+        if not kwargs.get('hashed_password'):
+            raise ValueError("Hashed password is required")
+        
+        # Validate field types
+        if kwargs.get('email') is not None and not isinstance(kwargs.get('email'), str):
+            raise TypeError("Email must be a string")
+        if kwargs.get('username') is not None and not isinstance(kwargs.get('username'), str):
+            raise TypeError("Username must be a string")
+        if kwargs.get('is_active') is not None and not isinstance(kwargs.get('is_active'), bool):
+            raise TypeError("Is_active must be a boolean")
+        
+        # Set default values
+        if 'is_active' not in kwargs:
+            kwargs['is_active'] = True
+        
+        # Set created_at for testing purposes
+        if 'created_at' not in kwargs:
+            from datetime import datetime, timezone
+            kwargs['created_at'] = datetime.now(timezone.utc)
+        
+        super().__init__(**kwargs)
+
+    def __str__(self):
+        return f"{self.username}@{self.email}"
+    
+    def __repr__(self):
+        return f"<User id={self.id} email={self.email} username={self.username}>"
 
     books: Mapped[list["Book"]] = relationship(
         "Book", back_populates="owner", cascade="all, delete-orphan"
@@ -55,6 +103,12 @@ class User(Base):
     )
     sent_messages: Mapped[list["Message"]] = relationship(
         "Message", foreign_keys="Message.sender_id", back_populates="sender"
+    )
+    received_messages: Mapped[list["Message"]] = relationship(
+        "Message", foreign_keys="Message.receiver_id", back_populates="receiver"
+    )
+    friendships: Mapped[list["Friendship"]] = relationship(
+        "Friendship", foreign_keys="Friendship.user_id", back_populates="requester"
     )
 
 
@@ -106,6 +160,37 @@ class Book(Base):
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
+    def __init__(self, **kwargs):
+        # Validate ISBN
+        isbn = kwargs.get('isbn')
+        if isbn is not None:
+            # Basic ISBN validation - should be either 10 or 13 digits with optional hyphens
+            import re
+            isbn_pattern = r'^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$'
+            if not re.match(isbn_pattern, isbn.replace('-', '').replace(' ', '')):
+                raise ValueError("Invalid ISBN format")
+        
+        # Validate year published
+        year = kwargs.get('year_published')
+        if year is not None:
+            current_year = datetime.now().year
+            if year < 1900 or year > current_year:
+                raise ValueError(f"Year published must be between 1900 and {current_year}")
+        
+        # Validate pages
+        pages = kwargs.get('pages')
+        if pages is not None:
+            if pages <= 0:
+                raise ValueError("Pages must be a positive integer")
+        
+        super().__init__(**kwargs)
+
+    def __str__(self):
+        return f"{self.title} by {self.author}"
+    
+    def __repr__(self):
+        return f"<Book id={self.id} title='{self.title}' author='{self.author}'>"
+
     owner: Mapped["User"] = relationship("User", back_populates="books")
     reviews: Mapped[list["Review"]] = relationship(
         "Review", back_populates="book", cascade="all, delete-orphan"
@@ -143,6 +228,36 @@ class Review(Base):
         DateTime, onupdate=func.now()
     )
 
+    def __init__(self, **kwargs):
+        # Validate rating
+        rating = kwargs.get('rating')
+        if rating is not None:
+            if not isinstance(rating, int):
+                raise ValueError("Rating must be an integer")
+            if rating < 1 or rating > 5:
+                raise ValueError("Rating must be between 1 and 5")
+        
+        # Validate title length
+        title = kwargs.get('title')
+        if title is not None:
+            if len(title) > 100:
+                raise ValueError("Title cannot be longer than 100 characters")
+        
+        # Validate content length
+        content = kwargs.get('content')
+        if content is not None:
+            if len(content) > 2000:
+                raise ValueError("Content cannot be longer than 2000 characters")
+        
+        super().__init__(**kwargs)
+
+    def __str__(self):
+        title_part = f": {self.title}" if self.title else ""
+        return f"Review by user {self.user_id}{title_part} ({self.rating}/5)"
+    
+    def __repr__(self):
+        return f"<Review id={self.id} user_id={self.user_id} book_id={self.book_id} rating={self.rating}>"
+
     user: Mapped["User"] = relationship("User", back_populates="reviews")
     book: Mapped["Book"] = relationship("Book", back_populates="reviews")
 
@@ -177,6 +292,42 @@ class Exchange(Base):
         DateTime, onupdate=func.now()
     )
 
+    def __init__(self, **kwargs):
+        # Validate status
+        status = kwargs.get('status')
+        if status is not None:
+            valid_statuses = ["pending", "accepted", "rejected", "completed", "cancelled"]
+            if status not in valid_statuses:
+                raise ValueError(f"Status must be one of {valid_statuses}")
+        
+        # Validate users are different
+        requester_id = kwargs.get('requester_id')
+        requested_user_id = kwargs.get('requested_user_id')
+        if requester_id is not None and requested_user_id is not None:
+            if requester_id == requested_user_id:
+                raise ValueError("Requester and requested user must be different")
+        
+        # Validate books are different
+        offered_book_id = kwargs.get('offered_book_id')
+        requested_book_id = kwargs.get('requested_book_id')
+        if offered_book_id is not None and requested_book_id is not None:
+            if offered_book_id == requested_book_id:
+                raise ValueError("Offered and requested books must be different")
+        
+        # Validate message length
+        message = kwargs.get('message')
+        if message is not None:
+            if len(message) > 500:
+                raise ValueError("Message cannot be longer than 500 characters")
+        
+        super().__init__(**kwargs)
+
+    def __str__(self):
+        return f"Exchange {self.id}: User {self.requester_id} -> User {self.requested_user_id} ({self.status})"
+    
+    def __repr__(self):
+        return f"<Exchange id={self.id} requester={self.requester_id} requested={self.requested_user_id} status={self.status}>"
+
     requester: Mapped["User"] = relationship(
         "User", foreign_keys=[requester_id], back_populates="sent_exchanges"
     )
@@ -207,6 +358,28 @@ class WishlistItem(Base):
     notes: Mapped[Optional[str]] = mapped_column(Text)
     added_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
+    def __init__(self, **kwargs):
+        # Validate priority
+        priority = kwargs.get('priority')
+        if priority is not None:
+            valid_priorities = ["low", "medium", "high"]
+            if priority not in valid_priorities:
+                raise ValueError(f"Priority must be one of {valid_priorities}")
+        
+        # Validate notes length
+        notes = kwargs.get('notes')
+        if notes is not None:
+            if len(notes) > 300:
+                raise ValueError("Notes cannot be longer than 300 characters")
+        
+        super().__init__(**kwargs)
+
+    def __str__(self):
+        return f"WishlistItem {self.id}: User {self.user_id} wants Book {self.book_id} ({self.priority} priority)"
+    
+    def __repr__(self):
+        return f"<WishlistItem id={self.id} user_id={self.user_id} book_id={self.book_id} priority={self.priority}>"
+
     user: Mapped["User"] = relationship("User", back_populates="wishlist_items")
     book: Mapped["Book"] = relationship("Book", back_populates="wishlist_items")
 
@@ -222,8 +395,37 @@ class Message(Base):
     receiver_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    def __init__(self, **kwargs):
+        # Validate sender and receiver are different
+        sender_id = kwargs.get('sender_id')
+        receiver_id = kwargs.get('receiver_id')
+        if sender_id is not None and receiver_id is not None:
+            if sender_id == receiver_id:
+                raise ValueError("Sender and receiver must be different")
+        
+        # Validate content
+        content = kwargs.get('content')
+        if content is not None:
+            if not content or len(content.strip()) == 0:
+                raise ValueError("Content cannot be empty")
+            if len(content) > 1000:
+                raise ValueError("Content cannot be longer than 1000 characters")
+        
+        # Set default values
+        if 'is_read' not in kwargs:
+            kwargs['is_read'] = False
+        
+        super().__init__(**kwargs)
+
+    def __str__(self):
+        read_status = "read" if self.is_read else "unread"
+        return f"Message {self.id}: User {self.sender_id} -> User {self.receiver_id} ({read_status})"
+    
+    def __repr__(self):
+        return f"<Message id={self.id} sender={self.sender_id} receiver={self.receiver_id} read={self.is_read}>"
 
     exchange: Mapped["Exchange"] = relationship("Exchange", back_populates="messages")
     receiver: Mapped["User"] = relationship("User", foreign_keys=[receiver_id])
@@ -246,6 +448,29 @@ class Friendship(Base):
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime, onupdate=func.now()
     )
+
+    def __init__(self, **kwargs):
+        # Validate status
+        status = kwargs.get('status')
+        if status is not None:
+            valid_statuses = ["pending", "accepted", "blocked"]
+            if status not in valid_statuses:
+                raise ValueError(f"Status must be one of {valid_statuses}")
+        
+        # Validate users are different
+        user_id = kwargs.get('user_id')
+        friend_id = kwargs.get('friend_id')
+        if user_id is not None and friend_id is not None:
+            if user_id == friend_id:
+                raise ValueError("Users in friendship must be different")
+        
+        super().__init__(**kwargs)
+
+    def __str__(self):
+        return f"Friendship {self.id}: User {self.user_id} <-> User {self.friend_id} ({self.status})"
+    
+    def __repr__(self):
+        return f"<Friendship id={self.id} user_id={self.user_id} friend_id={self.friend_id} status={self.status}>"
 
     requester: Mapped["User"] = relationship("User", foreign_keys=[user_id])
     friend: Mapped["User"] = relationship("User", foreign_keys=[friend_id])

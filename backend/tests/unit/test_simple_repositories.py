@@ -342,3 +342,63 @@ class TestRepositoryPerformance:
         assert hasattr(repo, "get_many")
         assert callable(repo.create_many)
         assert callable(repo.get_many)
+
+
+# === Repositories Module Tests ===
+
+class TestRepositoriesModule:
+    """Test repositories module structure and imports."""
+
+    def test_repositories_module_import(self):
+        """Test that repositories module can be imported."""
+        from app import repositories
+        assert repositories is not None
+
+    def test_user_repository_import(self):
+        """Test that UserRepository can be imported."""
+        from app.repositories import UserRepository
+        assert UserRepository is not None
+        assert callable(UserRepository)
+
+    def test_book_repository_import(self):
+        """Test that BookRepository can be imported."""
+        from app.repositories import BookRepository
+        assert BookRepository is not None
+        assert callable(BookRepository)
+
+    def test_review_repository_import(self):
+        """Test that ReviewRepository can be imported."""
+        from app.repositories import ReviewRepository
+        assert ReviewRepository is not None
+        assert callable(ReviewRepository)
+
+    def test_exchange_repository_import(self):
+        """Test that ExchangeRepository can be imported."""
+        from app.repositories import ExchangeRepository
+        assert ExchangeRepository is not None
+        assert callable(ExchangeRepository)
+
+    def test_base_repository_import(self):
+        """Test that BaseRepository can be imported."""
+        from app.repositories import BaseRepository
+        assert BaseRepository is not None
+
+    def test_repositories_module_structure(self):
+        """Test repositories module has required components."""
+        from app import repositories
+        assert hasattr(repositories, 'UserRepository')
+        assert hasattr(repositories, 'BookRepository')
+        assert hasattr(repositories, 'ReviewRepository')
+        assert hasattr(repositories, 'ExchangeRepository')
+        assert hasattr(repositories, 'BaseRepository')
+
+    def test_repository_classes_are_callable(self):
+        """Test that repository classes can be instantiated."""
+        from app.repositories import UserRepository, BookRepository, ReviewRepository, ExchangeRepository, BaseRepository
+        
+        # Test that all are classes
+        assert isinstance(UserRepository, type)
+        assert isinstance(BookRepository, type)
+        assert isinstance(ReviewRepository, type)
+        assert isinstance(ExchangeRepository, type)
+        assert isinstance(BaseRepository, type)

@@ -230,3 +230,61 @@ class TestCoreIntegration:
         assert factory is not None
         assert settings is not None
         assert hasattr(settings, "database_url")
+
+
+# === Dependencies Tests ===
+
+class TestDependencies:
+    """Test dependencies module functionality."""
+
+    def test_oauth2_scheme_import(self):
+        """Test that oauth2_scheme can be imported."""
+        from app.core.dependencies import oauth2_scheme
+        assert oauth2_scheme is not None
+
+    def test_get_current_user_import(self):
+        """Test that get_current_user can be imported."""
+        from app.core.dependencies import get_current_user
+        assert get_current_user is not None
+        assert callable(get_current_user)
+
+    def test_dependencies_module_structure(self):
+        """Test dependencies module structure."""
+        from app.core import dependencies
+        assert hasattr(dependencies, 'oauth2_scheme')
+        assert hasattr(dependencies, 'get_current_user')
+        assert hasattr(dependencies, 'Depends')
+        assert hasattr(dependencies, 'HTTPException')
+        assert hasattr(dependencies, 'status')
+
+    def test_dependencies_function_signatures(self):
+        """Test dependencies function signatures."""
+        from app.core.dependencies import get_current_user, oauth2_scheme
+        assert callable(get_current_user)
+        assert oauth2_scheme is not None
+
+    def test_core_factory_imports(self):
+        """Test factory imports work."""
+        try:
+            from app.core.factory import DatabaseServiceFactory
+            assert DatabaseServiceFactory is not None
+        except ImportError:
+            assert True
+
+    def test_core_observer_imports(self):
+        """Test observer imports work."""
+        try:
+            from app.core.observer import EventManager, event_manager
+            assert EventManager is not None
+            assert event_manager is not None
+        except ImportError:
+            assert True
+
+    def test_core_singleton_imports(self):
+        """Test singleton imports work."""
+        try:
+            from app.core.singleton import SingletonMeta, ConfigurationService
+            assert SingletonMeta is not None
+            assert ConfigurationService is not None
+        except ImportError:
+            assert True

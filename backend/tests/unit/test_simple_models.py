@@ -11,12 +11,20 @@ class TestUserModel:
 
     def test_user_model_instantiation(self):
         """Test User model can be instantiated."""
-        user = User()
+        user = User(
+            email="test@example.com",
+            username="testuser", 
+            hashed_password="hashed_password"
+        )
         assert isinstance(user, User)
 
     def test_user_model_has_attributes(self):
         """Test User model has expected attributes."""
-        user = User()
+        user = User(
+            email="test@example.com",
+            username="testuser", 
+            hashed_password="hashed_password"
+        )
         assert hasattr(user, "email")
         assert hasattr(user, "username")
         assert hasattr(user, "hashed_password")
@@ -29,12 +37,22 @@ class TestBookModel:
 
     def test_book_model_instantiation(self):
         """Test Book model can be instantiated."""
-        book = Book()
+        book = Book(
+            title="Test Book",
+            author="Test Author",
+            genre="fiction",
+            owner_id=1
+        )
         assert isinstance(book, Book)
 
     def test_book_model_has_attributes(self):
         """Test Book model has expected attributes."""
-        book = Book()
+        book = Book(
+            title="Test Book",
+            author="Test Author",
+            genre="fiction",
+            owner_id=1
+        )
         assert hasattr(book, "title")
         assert hasattr(book, "author")
         assert hasattr(book, "genre")
@@ -47,12 +65,20 @@ class TestReviewModel:
 
     def test_review_model_instantiation(self):
         """Test Review model can be instantiated."""
-        review = Review()
+        review = Review(
+            user_id=1,
+            book_id=1,
+            rating=5
+        )
         assert isinstance(review, Review)
 
     def test_review_model_has_attributes(self):
         """Test Review model has expected attributes."""
-        review = Review()
+        review = Review(
+            user_id=1,
+            book_id=1,
+            rating=5
+        )
         assert hasattr(review, "book_id")
         assert hasattr(review, "user_id")
         assert hasattr(review, "rating")
@@ -64,12 +90,22 @@ class TestExchangeModel:
 
     def test_exchange_model_instantiation(self):
         """Test Exchange model can be instantiated."""
-        exchange = Exchange()
+        exchange = Exchange(
+            requester_id=1,
+            requested_user_id=2,
+            offered_book_id=1,
+            requested_book_id=2
+        )
         assert isinstance(exchange, Exchange)
 
     def test_exchange_model_has_attributes(self):
         """Test Exchange model has expected attributes."""
-        exchange = Exchange()
+        exchange = Exchange(
+            requester_id=1,
+            requested_user_id=2,
+            offered_book_id=1,
+            requested_book_id=2
+        )
         assert hasattr(exchange, "requested_book_id")
         assert hasattr(exchange, "offered_book_id")
         assert hasattr(exchange, "requester_id")
@@ -88,10 +124,28 @@ class TestModelBasics:
 
     def test_models_have_id_attribute(self):
         """Test that all models have id attribute."""
-        user = User()
-        book = Book()
-        review = Review()
-        exchange = Exchange()
+        user = User(
+            email="test@example.com",
+            username="testuser", 
+            hashed_password="hashed_password"
+        )
+        book = Book(
+            title="Test Book",
+            author="Test Author",
+            genre="fiction",
+            owner_id=1
+        )
+        review = Review(
+            user_id=1,
+            book_id=1,
+            rating=5
+        )
+        exchange = Exchange(
+            requester_id=1,
+            requested_user_id=2,
+            offered_book_id=1,
+            requested_book_id=2
+        )
 
         assert hasattr(user, "id")
         assert hasattr(book, "id")
@@ -104,8 +158,17 @@ class TestModelRelationships:
 
     def test_user_book_relationship(self):
         """Test User-Book relationship attributes."""
-        user = User()
-        book = Book()
+        user = User(
+            email="test@example.com",
+            username="testuser", 
+            hashed_password="hashed_password"
+        )
+        book = Book(
+            title="Test Book",
+            author="Test Author",
+            genre="fiction",
+            owner_id=1
+        )
 
         # User should have books relationship
         assert hasattr(user, "books")
@@ -115,8 +178,17 @@ class TestModelRelationships:
 
     def test_book_review_relationship(self):
         """Test Book-Review relationship attributes."""
-        book = Book()
-        review = Review()
+        book = Book(
+            title="Test Book",
+            author="Test Author",
+            genre="fiction",
+            owner_id=1
+        )
+        review = Review(
+            user_id=1,
+            book_id=1,
+            rating=5
+        )
 
         # Book should have reviews relationship
         assert hasattr(book, "reviews")
@@ -133,8 +205,11 @@ class TestModelStringRepresentation:
 
     def test_user_str_representation(self):
         """Test User string representation."""
-        user = User()
-        user.username = "testuser"
+        user = User(
+            email="test@example.com",
+            username="testuser", 
+            hashed_password="hashed_password"
+        )
 
         str_repr = str(user)
         assert isinstance(str_repr, str)
@@ -142,8 +217,12 @@ class TestModelStringRepresentation:
 
     def test_book_str_representation(self):
         """Test Book string representation."""
-        book = Book()
-        book.title = "Test Book"
+        book = Book(
+            title="Test Book",
+            author="Test Author",
+            genre="fiction",
+            owner_id=1
+        )
 
         str_repr = str(book)
         assert isinstance(str_repr, str)
@@ -151,8 +230,11 @@ class TestModelStringRepresentation:
 
     def test_review_str_representation(self):
         """Test Review string representation."""
-        review = Review()
-        review.rating = 5
+        review = Review(
+            user_id=1,
+            book_id=1,
+            rating=5
+        )
 
         str_repr = str(review)
         assert isinstance(str_repr, str)
@@ -164,10 +246,28 @@ class TestModelValidation:
 
     def test_model_validation_exists(self):
         """Test that models have validation mechanisms."""
-        user = User()
-        book = Book()
-        review = Review()
-        exchange = Exchange()
+        user = User(
+            email="test@example.com",
+            username="testuser", 
+            hashed_password="hashed_password"
+        )
+        book = Book(
+            title="Test Book",
+            author="Test Author",
+            genre="fiction",
+            owner_id=1
+        )
+        review = Review(
+            user_id=1,
+            book_id=1,
+            rating=5
+        )
+        exchange = Exchange(
+            requester_id=1,
+            requested_user_id=2,
+            offered_book_id=1,
+            requested_book_id=2
+        )
 
         # Models should have validation methods or attributes
         # This is a basic test - actual validation logic would be more complex

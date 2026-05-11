@@ -1368,14 +1368,14 @@ class TestFriendshipService:
         self.mock_friendship_repo.get_by_id.return_value = mock_friendship
         
         # Mock updated friendship
-        rejected_friendship = Friendship(id=friendship_id, user_id=1, friend_id=user_id, status="rejected")
+        rejected_friendship = Friendship(id=friendship_id, user_id=1, friend_id=user_id, status="blocked")
         self.mock_friendship_repo.update.return_value = rejected_friendship
         
         # Execute
         result = await self.friendship_service.reject_friend_request(friendship_id, user_id)
         
         # Assert
-        assert result.status == "rejected"
+        assert result.status == "blocked"
         self.mock_friendship_repo.update.assert_called_once()
     
     async def test_get_user_friends_success(self):
