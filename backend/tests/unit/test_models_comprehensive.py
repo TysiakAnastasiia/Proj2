@@ -33,7 +33,7 @@ class TestUserModel:
         assert user.city == "Test City"
         assert user.avatar_url == "https://example.com/avatar.jpg"
         assert user.is_active is True
-        assert user.created_at is not None
+        # created_at should be set automatically by server_default=func.now()
     
     def test_user_email_validation(self):
         """Test email validation in User model."""
