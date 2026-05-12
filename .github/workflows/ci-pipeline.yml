@@ -19,7 +19,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Важливо для SonarCloud
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -36,27 +36,35 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest-cov # Про всяк випадок, якщо немає в requirements
 
       - name: Run tests and coverage
         run: |
-          # Створюємо папку для звітів явно
           mkdir -p reports
-          pytest --cov=app --cov-report=xml:reports/coverage.xml --junitxml=reports/junit.xml tests/unit tests/integration
+          pytest \
+            --cov=app \
+            --cov-report=xml:reports/coverage.xml \
+            --cov-report=term \
+            --junitxml=reports/junit.xml \
+            tests/unit tests/integration
+
+      - name: Debug - check reports exist
+          echo "=== coverage.xml ==="
+          cat reports/coverage.xml | head -20
+          echo "=== junit.xml ==="
+          cat reports/junit.xml | head -10
 
       - name: Run SonarCloud analysis
         uses: SonarSource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
+          projectBaseDir: backend
           args: >
             -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
             -Dsonar.organization=for2proj
-            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
-            -Dsonar.sources=backend/app
-            -Dsonar.tests=backend/tests
-            -Dsonar.python.coverage.reportPaths=backend/reports/coverage.xml
-            -Dsonar.python.xunit.reportPath=backend/reports/junit.xml
-            -Dsonar.exclusions=backend/**/migrations/**,backend/**/__pycache__/**
+            -Dsonar.sources=app
+            -Dsonar.tests=tests
+            -Dsonar.python.coverage.reportPaths=reports/coverage.xml
+            -Dsonar.python.xunit.reportPath=reports/junit.xml
+            -Dsonar.exclusions=**/migrations/**,**/__pycache__/**
             -Dsonar.verbose=true
