@@ -56,7 +56,7 @@ jobs:
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
             -Dsonar.sources=backend/app
             -Dsonar.tests=backend/tests
-            -Dsonar.python.coverage.reportPaths=backend/reports/coverage.xml
-            -Dsonar.python.xunit.reportPath=backend/reports/junit.xml
+            -Dsonar.python.coverage.reportPaths=reports/coverage.xml
+            -Dsonar.python.xunit.reportPath=reports/junit.xml
             -Dsonar.exclusions=backend/**/migrations/**,backend/**/__pycache__/**
             -Dsonar.verbose=true
