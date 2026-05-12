@@ -1,0 +1,6 @@
+- [x] Дослідити workflow CI та шляхи до coverage/junit
+- [x] Виявити, що `working-directory: backend`, тож Sonar очікував не той шлях до `coverage.xml`/`junit.xml`
+- [x] Виправити `.github/workflows/ci-pipeline.yml`:
+  - `-Dsonar.python.coverage.reportPaths=backend/reports/coverage.xml`
+  - `-Dsonar.python.xunit.reportPath=backend/reports/junit.xml`
+- [ ] Перезапустити CI (push/PR) та перевірити SonarCloud логи на появу `Python Coverage [python]` з шляхом
