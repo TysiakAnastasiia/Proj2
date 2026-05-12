@@ -36,6 +36,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pytest pytest-cov
 
       - name: Run tests and coverage
         run: |
@@ -47,14 +48,8 @@ jobs:
             --junitxml=reports/junit.xml \
             tests/unit tests/integration
 
-      - name: Debug - check reports exist
-          echo "=== coverage.xml ==="
-          cat reports/coverage.xml | head -20
-          echo "=== junit.xml ==="
-          cat reports/junit.xml | head -10
-
       - name: Run SonarCloud analysis
-        uses: SonarSource/sonarcloud-github-action@v2
+        uses: SonarSource/sonarcloud-github-action@v3
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
