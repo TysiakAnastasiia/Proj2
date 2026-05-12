@@ -1,6 +1,7 @@
-- [x] Дослідити workflow CI та шляхи до coverage/junit
-- [x] Виявити, що `working-directory: backend`, тож Sonar очікував не той шлях до `coverage.xml`/`junit.xml`
-- [x] Виправити `.github/workflows/ci-pipeline.yml`:
-  - `-Dsonar.python.coverage.reportPaths=backend/reports/coverage.xml`
-  - `-Dsonar.python.xunit.reportPath=backend/reports/junit.xml`
-- [ ] Перезапустити CI (push/PR) та перевірити SonarCloud логи на появу `Python Coverage [python]` з шляхом
+# TODO
+
+## Step 1 — SonarCloud CI failure
+
+- [x] Inspect SonarCloud step in `.github/workflows/ci-pipeline.yml` and identify cause of `Unrecognized option: #`.
+- [x] Fix YAML `with: args: >` block so comment lines are not passed as scanner arguments.
+- [ ] Re-run CI (push/PR) to confirm Sonar-scanner succeeds.
