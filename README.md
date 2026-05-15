@@ -13,6 +13,8 @@
 [![Duplications](https://sonarcloud.io/api/project_badges/measure?project=TysiakAnastasiia_Proj2&metric=duplicated_lines_density)](https://sonarcloud.io/dashboard?id=TysiakAnastasiia_Proj2)
 
 ![](image.png)
+<img width="1836" height="871" alt="image" src="https://github.com/user-attachments/assets/89974f9c-1e4c-4578-802b-cc7b07b1802d" />
+
 
 > Платформа для обміну книгами, рецензій, рейтингів та AI-рекомендацій
 
