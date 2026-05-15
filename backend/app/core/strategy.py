@@ -97,15 +97,41 @@ class GenreBasedStrategy(RecommendationStrategy):
         used_titles: set = set(read_books)
 
         for genre in favorite_genres:
-            genre_lower = genre.lower()
-            for key, books in self.GENRE_BOOKS.items():
-                if key in genre_lower or genre_lower in key:
-                    for book in books:
-                        if book["title"] not in used_titles and len(recommendations) < count:
-                            recommendations.append(book)
-                            used_titles.add(book["title"])
+            self._collect_genre_books(genre.lower(), recommendations, used_titles, count)
 
         return recommendations[:count]
+
+    def _collect_genre_books(
+        self,
+        genre_lower: str,
+        recommendations: List[Dict[str, Any]],
+        used_titles: set,
+        count: int,
+    ) -> None:
+        """Collect matching books for a single genre into recommendations."""
+        for key, books in self.GENRE_BOOKS.items():
+            if self._genre_key_matches(key, genre_lower):
+                self._add_new_books(books, recommendations, used_titles, count)
+
+    @staticmethod
+    def _genre_key_matches(key: str, genre_lower: str) -> bool:
+        """Check if a genre key matches the requested genre."""
+        return key in genre_lower or genre_lower in key
+
+    @staticmethod
+    def _add_new_books(
+        books: List[Dict[str, Any]],
+        recommendations: List[Dict[str, Any]],
+        used_titles: set,
+        count: int,
+    ) -> None:
+        """Add books not yet used and within count limit."""
+        for book in books:
+            if len(recommendations) >= count:
+                break
+            if book["title"] not in used_titles:
+                recommendations.append(book)
+                used_titles.add(book["title"])
 
     def get_strategy_name(self) -> str:
         return "GenreBasedStrategy"
