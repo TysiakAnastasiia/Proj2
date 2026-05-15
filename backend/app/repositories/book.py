@@ -38,7 +38,7 @@ class BookRepository(BaseRepository[Book]):
         if genre:
             filters.append(Book.genre == genre)
         if available_only:
-            filters.append(Book.is_available_for_exchange)
+            filters.append(Book.is_available)
         if owner_id:
             filters.append(Book.owner_id == owner_id)
 

@@ -1,5 +1,3 @@
 """
-BookSwap Backend Application
+API modules for BookSwap backend.
 """
-
-__version__ = "1.0.0"
