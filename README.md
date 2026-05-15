@@ -1,4 +1,3 @@
-# Bookie
 
 [![CI Quality Gate](https://github.com/TysiakAnastasiia/Proj2/actions/workflows/ci-pipeline.yml/badge.svg)](https://github.com/TysiakAnastasiia/Proj2/actions/workflows/ci-pipeline.yml)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=TysiakAnastasiia_Proj2&metric=coverage)](https://sonarcloud.io/dashboard?id=TysiakAnastasiia_Proj2)
