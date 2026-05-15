@@ -1,12 +1,18 @@
 # Bookie
 
-[![CI](https://github.com/for2proj/bookswap/actions/workflows/ci-pipeline.yml/badge.svg)](https://github.com/for2proj/bookswap/actions/workflows/ci-pipeline.yml)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=for2proj_bookswap&metric=alert_status)](https://sonarcloud.io/dashboard?id=for2proj_bookswap)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=for2proj_bookswap&metric=coverage)](https://sonarcloud.io/dashboard?id=for2proj_bookswap)
-[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=for2proj_bookswap&metric=code_smells)](https://sonarcloud.io/dashboard?id=for2proj_bookswap)
-[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=for2proj_bookswap&metric=bugs)](https://sonarcloud.io/dashboard?id=for2proj_bookswap)
-![Tests](https://img.shields.io/badge/tests-644%20passed-brightgreen)
-![Coverage](https://img.shields.io/badge/coverage-89%25-brightgreen)
+[![CI Quality Gate](https://github.com/TysiakAnastasiia/Proj2/actions/workflows/ci-pipeline.yml/badge.svg)](https://github.com/TysiakAnastasiia/Proj2/actions/workflows/ci-pipeline.yml)
+
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=TysiakAnastasiia_Proj2&metric=coverage)](https://sonarcloud.io/dashboard?id=TysiakAnastasiia_Proj2)
+
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=TysiakAnastasiia_Proj2&metric=bugs)](https://sonarcloud.io/dashboard?id=TysiakAnastasiia_Proj2)
+
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=TysiakAnastasiia_Proj2&metric=code_smells)](https://sonarcloud.io/dashboard?id=TysiakAnastasiia_Proj2)
+
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=TysiakAnastasiia_Proj2&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=TysiakAnastasiia_Proj2)
+
+[![Duplications](https://sonarcloud.io/api/project_badges/measure?project=TysiakAnastasiia_Proj2&metric=duplicated_lines_density)](https://sonarcloud.io/dashboard?id=TysiakAnastasiia_Proj2)
+
+![](image.png)
 
 > Платформа для обміну книгами, рецензій, рейтингів та AI-рекомендацій
 
