@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://bookswap:change-this-password@db:5432/bookswap"
 
     # Security
-    secret_key: str = "change-me-in-production-super-secret-key"
+    secret_key: str = "123-456-789-qwertyuiop-asdfghjkl-zxcvbnm"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
